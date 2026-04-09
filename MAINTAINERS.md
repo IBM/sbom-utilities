@@ -1,9 +1,5 @@
 # MAINTAINERS
 
-Mo McElaney - mmcelaney@us.ibm.com
-
-JJ Asghar - jja@ibm.com
-
-Joe Sepi - joesepi@ibm.com
-
-Brad Topol - btopol@us.ibm.com
+John Bergland - john_bergland@us.ibm.com
+Zadia Alden - 8wartnz@uk.ibm.com
+Dave Royek - droyek@us.ibm.com
