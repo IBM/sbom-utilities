@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CVE Age Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #e8e8e8;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+            color: #161616;
+            position: relative;
+            padding-bottom: 4rem;
+        }
+        
+        .header-bar {
+            background: linear-gradient(135deg, #4169E1 0%, #0f62fe 100%);
+            color: #ffffff;
+            padding: 2rem 2rem 2.5rem 2rem;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-content {
+            max-width: 1584px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .version {
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-size: 0.75rem;
+            opacity: 0.9;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+        }
+        
+        .container {
+            max-width: 1584px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        
+        .card {
+            background: #f9f9f9;
+            border: 1px solid #d0d0d0;
+            padding: 2rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        
+        h1 {
+            font-size: 2.625rem;
+            font-weight: 400;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            line-height: 1.2;
+        }
+        
+        .subtitle {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 0;
+            line-height: 1.5;
+        }
+        
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.32px;
+            margin-bottom: 0.5rem;
+            color: #525252;
+            text-transform: uppercase;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 0.6875rem 1rem;
+            border: none;
+            border-bottom: 1px solid #8d8d8d;
+            font-size: 0.875rem;
+            font-family: 'IBM Plex Mono', 'Courier New', monospace;
+            resize: vertical;
+            min-height: 120px;
+            background: #f4f4f4;
+            transition: all 0.11s cubic-bezier(0.2, 0, 0.38, 0.9);
+        }
+        
+        textarea:focus {
+            outline: 2px solid #0f62fe;
+            outline-offset: -2px;
+            border-bottom: 1px solid #0f62fe;
+        }
+        
+        button {
+            width: auto;
+            padding: 0.875rem 2rem;
+            background: linear-gradient(135deg, #4169E1 0%, #0f62fe 100%);
+            color: #ffffff;
+            border: none;
+            font-size: 0.875rem;
+            font-weight: 400;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.11s cubic-bezier(0.2, 0, 0.38, 0.9);
+            display: inline-block;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, #3659d1 0%, #0353e9 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(65, 105, 225, 0.3);
+        }
+        
+        button:active {
+            background: linear-gradient(135deg, #2a4ab8 0%, #002d9c 100%);
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #c6c6c6;
+            color: #8d8d8d;
+            cursor: not-allowed;
+        }
+        
+        .download-btn {
+            background: #198038;
+            margin-top: 1rem;
+        }
+        
+        .download-btn:hover {
+            background: #0e6027;
+        }
+        
+        .download-btn:active {
+            background: #044317;
+        }
+        
+        .error {
+            background: #fff1f1;
+            border-left: 3px solid #da1e28;
+            color: #161616;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .summary-card {
+            background: #f9f9f9;
+            border: 1px solid #d0d0d0;
+            padding: 2rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        
+        .summary-card h2 {
+            font-size: 1.75rem;
+            font-weight: 400;
+            color: #161616;
+            margin-bottom: 1.5rem;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .summary-item {
+            padding: 1.5rem;
+            background: #ffffff;
+            border: 2px solid #d0d0d0;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .summary-item:nth-child(1) {
+            border-color: #a8a8a8;
+            background: #f5f5f5;
+        }
+        
+        .summary-item:nth-child(2) {
+            border-color: #42be65;
+            background: #defbe6;
+        }
+        
+        .summary-item:nth-child(3) {
+            border-color: #f1c21b;
+            background: #fcf4d6;
+        }
+        
+        .summary-item:nth-child(4) {
+            border-color: #a8a8a8;
+            background: #f5f5f5;
+        }
+        
+        .summary-value {
+            font-size: 2.625rem;
+            font-weight: 300;
+            margin-bottom: 0.25rem;
+            color: #161616;
+        }
+        
+        .summary-label {
+            font-size: 0.875rem;
+            color: #525252;
+            font-weight: 400;
+        }
+        
+        .severity-section {
+            background: #f9f9f9;
+            border: 1px solid #d0d0d0;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        
+        .severity-header {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.11s cubic-bezier(0.2, 0, 0.38, 0.9);
+            border-left: 4px solid transparent;
+        }
+        
+        .severity-header:hover {
+            background: #f4f4f4;
+        }
+        
+        .severity-header.critical {
+            background: #fff1f1;
+            border-left-color: #da1e28;
+        }
+        
+        .severity-header.high {
+            background: #fff8e1;
+            border-left-color: #f1c21b;
+        }
+        
+        .severity-header.medium {
+            background: #e5f6ff;
+            border-left-color: #0f62fe;
+        }
+        
+        .severity-header.low {
+            background: #defbe6;
+            border-left-color: #24a148;
+        }
+        
+        .severity-header.na {
+            background: #f4f4f4;
+            border-left-color: #8d8d8d;
+        }
+        
+        .severity-header.error {
+            background: #fff1f1;
+            border-left-color: #da1e28;
+        }
+        
+        .severity-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .severity-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #161616;
+        }
+        
+        .severity-count {
+            background: rgba(22, 22, 22, 0.1);
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #161616;
+        }
+        
+        .collapse-icon {
+            font-size: 1.25rem;
+            transition: transform 0.11s cubic-bezier(0.2, 0, 0.38, 0.9);
+            color: #161616;
+        }
+        
+        .collapse-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        .severity-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.24s cubic-bezier(0.2, 0, 0.38, 0.9);
+        }
+        
+        .severity-content.expanded {
+            max-height: 10000px;
+            transition: max-height 0.4s cubic-bezier(0.2, 0, 0.38, 0.9);
+        }
+        
+        .result-card {
+            background: #ffffff;
+            padding: 1.5rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .result-card:last-child {
+            border-bottom: none;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        
+        .cve-id {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #161616;
+        }
+        
+        .badge {
+            padding: 0.125rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.32px;
+            border-radius: 0.75rem;
+        }
+        
+        .critical { 
+            background: #da1e28; 
+            color: #ffffff; 
+        }
+        
+        .high { 
+            background: #f1c21b; 
+            color: #161616; 
+        }
+        
+        .medium { 
+            background: #0f62fe; 
+            color: #ffffff; 
+        }
+        
+        .low { 
+            background: #24a148; 
+            color: #ffffff; 
+        }
+        
+        .na { 
+            background: #8d8d8d; 
+            color: #ffffff; 
+        }
+        
+        .description {
+            color: #525252;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 0.875rem;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .info-label {
+            font-size: 0.75rem;
+            color: #525252;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.32px;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            font-weight: 400;
+            color: #161616;
+            font-size: 0.875rem;
+        }
+        
+        .age-old { color: #da1e28; font-weight: 600; }
+        .age-medium { color: #f1c21b; font-weight: 600; }
+        .age-recent { color: #24a148; font-weight: 600; }
+        
+        .link {
+            color: #0f62fe;
+            text-decoration: none;
+            transition: color 0.11s cubic-bezier(0.2, 0, 0.38, 0.9);
+        }
+        
+        .link:hover {
+            color: #0353e9;
+            text-decoration: underline;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #525252;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e0e0e0;
+            border-top: 3px solid #0f62fe;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .progress {
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: #525252;
+        }
+        
+        /* Timeline Styles */
+        .timeline-container {
+            background: #f9f9f9;
+            border: 1px solid #d0d0d0;
+            padding: 2rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            background: #ffffff;
+            border-top: 1px solid #e0e0e0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            font-size: 0.875rem;
+            color: #525252;
+            box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.08);
+        }
+        
+        .footer-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .bob-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #4169E1 0%, #0f62fe 100%);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+        
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .timeline-title {
+            font-size: 1.75rem;
+            font-weight: 400;
+            color: #161616;
+        }
+        
+        .timeline-toggle {
+            display: flex;
+            gap: 0;
+            border: 1px solid #8d8d8d;
+        }
+        
+        .toggle-btn {
+            padding: 0.5rem 1rem;
+            background: #ffffff;
+            border: none;
+            border-right: 1px solid #8d8d8d;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 400;
+            transition: all 0.11s cubic-bezier(0.2, 0, 0.38, 0.9);
+            color: #161616;
+        }
+        
+        .toggle-btn:last-child {
+            border-right: none;
+        }
+        
+        .toggle-btn.active {
+            background: #0f62fe;
+            color: #ffffff;
+        }
+        
+        .toggle-btn:hover:not(.active) {
+            background: #e0e0e0;
+        }
+        
+        .timeline-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: #f4f4f4;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #161616;
+        }
+        
+        .legend-label {
+            font-size: 0.875rem;
+            font-weight: 400;
+            color: #161616;
+        }
+        
+        .timeline-svg {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 1.5rem;
+        }
+        
+        .timeline-period {
+            cursor: pointer;
+            transition: opacity 0.11s cubic-bezier(0.2, 0, 0.38, 0.9);
+        }
+        
+        .timeline-period:hover {
+            opacity: 0.8;
+        }
+        
+        .timeline-label {
+            font-size: 0.75rem;
+            fill: #161616;
+            font-weight: 400;
+        }
+        
+        .timeline-count {
+            font-size: 0.875rem;
+            font-weight: 600;
+            fill: #161616;
+        }
+        
+        .timeline-axis {
+            stroke: #8d8d8d;
+            stroke-width: 1;
+        }
+        
+        .timeline-tick {
+            stroke: #e0e0e0;
+            stroke-width: 1;
+        }
+        
+        .timeline-tooltip {
+            position: absolute;
+            background: #161616;
+            color: #ffffff;
+            padding: 0.75rem;
+            font-size: 0.875rem;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            max-width: 300px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .timeline-tooltip.show {
+            display: block;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 672px) {
+            body {
+                padding: 1rem 0.5rem;
+            }
+            
+            .card, .summary-card, .timeline-container {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .summary-value {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-bar">
+        <div class="header-content">
+            <div class="version">Version 1.April_02_26</div>
+            <h1>🔒 CVE Age Tracker</h1>
+            <p class="subtitle">Enter CVE IDs to analyze their publication date and calculate how old they are</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <label for="cveInput">CVE IDs (one per line, comma-separated, or mixed)</label>
+            <textarea id="cveInput" placeholder="CVE-2024-1234, CVE-2023-5678, CVE-2022-9012"></textarea>
+            
+            <button id="analyzeBtn" onclick="analyzeCVEs()">Analyze CVEs</button>
+            
+            <div id="error" style="display:none;"></div>
+        </div>
+        
+        <div id="summary" style="display:none;"></div>
+        <div id="timeline" style="display:none;"></div>
+        <div id="results"></div>
+    </div>
+    
+    <div class="timeline-tooltip" id="tooltip"></div>
+    
+    <div class="footer">
+        <div class="footer-icon">
+            <span class="bob-icon">B</span>
+            Built with Bob
+        </div>
+    </div>
+
+    <script>
+        var globalResults = [];
+        
+        function analyzeCVEs() {
+            var input = document.getElementById('cveInput').value;
+            var errorDiv = document.getElementById('error');
+            var resultsDiv = document.getElementById('results');
+            var summaryDiv = document.getElementById('summary');
+            var timelineDiv = document.getElementById('timeline');
+            var btn = document.getElementById('analyzeBtn');
+            
+            errorDiv.style.display = 'none';
+            errorDiv.className = '';
+            summaryDiv.style.display = 'none';
+            timelineDiv.style.display = 'none';
+            
+            var cvePattern = /CVE-\d{4}-\d{4,}/gi;
+            var matches = input.match(cvePattern);
+            
+            if (!matches || matches.length === 0) {
+                errorDiv.textContent = 'No valid CVE IDs found. Please enter CVE IDs in format: CVE-YYYY-NNNN';
+                errorDiv.className = 'error';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            var uniqueCVEs = [];
+            var seen = {};
+            for (var i = 0; i < matches.length; i++) {
+                var cve = matches[i].toUpperCase();
+                if (!seen[cve]) {
+                    uniqueCVEs.push(cve);
+                    seen[cve] = true;
+                }
+            }
+            
+            btn.disabled = true;
+            btn.textContent = 'Analyzing...';
+            resultsDiv.innerHTML = '<div class="card loading"><div class="spinner"></div> Fetching CVE data...<div class="progress" id="progress">0 / ' + uniqueCVEs.length + '</div></div>';
+            
+            var allResults = [];
+            var completed = 0;
+            var totalCVEs = uniqueCVEs.length;
+            
+            for (var i = 0; i < uniqueCVEs.length; i++) {
+                (function(cveId, idx) {
+                    fetchCVE(cveId, idx, function(result, index) {
+                        allResults[index] = result;
+                        completed++;
+                        
+                        var progressEl = document.getElementById('progress');
+                        if (progressEl) {
+                            progressEl.textContent = completed + ' / ' + totalCVEs;
+                        }
+                        
+                        if (completed === totalCVEs) {
+                            globalResults = allResults;
+                            displayResults(allResults);
+                            btn.disabled = false;
+                            btn.textContent = 'Analyze CVEs';
+                        }
+                    });
+                })(uniqueCVEs[i], i);
+            }
+        }
+        
+        function fetchCVE(cveId, index, callback) {
+            var url = 'https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=' + cveId;
+            
+            fetch(url)
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('HTTP error ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data.vulnerabilities && data.vulnerabilities.length > 0) {
+                        var vuln = data.vulnerabilities[0].cve;
+                        var publishedDate = new Date(vuln.published);
+                        var now = new Date();
+                        var ageMs = now - publishedDate;
+                        var ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24));
+                        
+                        var description = 'No description available';
+                        if (vuln.descriptions && vuln.descriptions.length > 0) {
+                            description = vuln.descriptions[0].value;
+                        }
+                        
+                        var severity = 'N/A';
+                        var severityClass = 'na';
+                        var severityOrder = 5;
+                        if (vuln.metrics) {
+                            if (vuln.metrics.cvssMetricV31 && vuln.metrics.cvssMetricV31.length > 0) {
+                                severity = vuln.metrics.cvssMetricV31[0].cvssData.baseSeverity;
+                                severityClass = severity.toLowerCase();
+                            } else if (vuln.metrics.cvssMetricV30 && vuln.metrics.cvssMetricV30.length > 0) {
+                                severity = vuln.metrics.cvssMetricV30[0].cvssData.baseSeverity;
+                                severityClass = severity.toLowerCase();
+                            } else if (vuln.metrics.cvssMetricV2 && vuln.metrics.cvssMetricV2.length > 0) {
+                                var score = vuln.metrics.cvssMetricV2[0].cvssData.baseScore;
+                                if (score >= 7.0) severity = 'HIGH';
+                                else if (score >= 4.0) severity = 'MEDIUM';
+                                else severity = 'LOW';
+                                severityClass = severity.toLowerCase();
+                            }
+                        }
+                        
+                        if (severity === 'CRITICAL') severityOrder = 1;
+                        else if (severity === 'HIGH') severityOrder = 2;
+                        else if (severity === 'MEDIUM') severityOrder = 3;
+                        else if (severity === 'LOW') severityOrder = 4;
+                        
+                        callback({
+                            cveId: cveId,
+                            published: publishedDate,
+                            ageDays: ageDays,
+                            description: description,
+                            severity: severity,
+                            severityClass: severityClass,
+                            severityOrder: severityOrder,
+                            error: null
+                        }, index);
+                    } else {
+                        callback({
+                            cveId: cveId,
+                            error: 'CVE not found in NVD database',
+                            severityOrder: 6
+                        }, index);
+                    }
+                })
+                .catch(function(error) {
+                    callback({
+                        cveId: cveId,
+                        error: 'Failed to fetch: ' + error.message,
+                        severityOrder: 6
+                    }, index);
+                });
+        }
+        
+        function displayResults(results) {
+            var resultsDiv = document.getElementById('results');
+            var summaryDiv = document.getElementById('summary');
+            var timelineDiv = document.getElementById('timeline');
+            
+            var totalCVEs = results.length;
+            var oldCVEs = 0;
+            var errorCount = 0;
+            
+            results.forEach(function(result) {
+                if (!result.error && result.ageDays >= 180) {
+                    oldCVEs++;
+                }
+                if (result.error) {
+                    errorCount++;
+                }
+            });
+            
+            var successfulCVEs = totalCVEs - errorCount;
+            var oldPercentage = successfulCVEs > 0 ? Math.round((oldCVEs / successfulCVEs) * 100) : 0;
+            
+            summaryDiv.innerHTML = '<div class="summary-card">' +
+                '<h2>Summary</h2>' +
+                '<div class="summary-grid">' +
+                    '<div class="summary-item">' +
+                        '<div class="summary-value">' + totalCVEs + '</div>' +
+                        '<div class="summary-label">Total CVEs</div>' +
+                    '</div>' +
+                    '<div class="summary-item">' +
+                        '<div class="summary-value">' + oldCVEs + '</div>' +
+                        '<div class="summary-label">> 6 Months Old</div>' +
+                    '</div>' +
+                    '<div class="summary-item">' +
+                        '<div class="summary-value">' + oldPercentage + '%</div>' +
+                        '<div class="summary-label">Percentage Old</div>' +
+                    '</div>' +
+                    '<div class="summary-item">' +
+                        '<div class="summary-value">' + (successfulCVEs - oldCVEs) + '</div>' +
+                        '<div class="summary-label">< 6 Months Old</div>' +
+                    '</div>' +
+                '</div>' +
+                '<button class="download-btn" onclick="downloadCSV()">📥 Download CSV</button>' +
+            '</div>';
+            summaryDiv.style.display = 'block';
+            
+            // Generate timeline visualization
+            generateTimeline(results);
+            timelineDiv.style.display = 'block';
+            
+            // Sort by severity
+            results.sort(function(a, b) {
+                return a.severityOrder - b.severityOrder;
+            });
+            
+            // Group by severity
+            var grouped = {
+                'CRITICAL': [],
+                'HIGH': [],
+                'MEDIUM': [],
+                'LOW': [],
+                'N/A': [],
+                'ERROR': []
+            };
+            
+            results.forEach(function(result) {
+                if (result.error) {
+                    grouped['ERROR'].push(result);
+                } else {
+                    grouped[result.severity].push(result);
+                }
+            });
+            
+            var html = '';
+            var severities = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'N/A', 'ERROR'];
+            
+            severities.forEach(function(sev) {
+                if (grouped[sev].length > 0) {
+                    var sevClass = sev.toLowerCase();
+                    var sevId = 'severity-' + sevClass;
+                    
+                    html += '<div class="severity-section">' +
+                        '<div class="severity-header ' + sevClass + '" onclick="toggleSection(\'' + sevId + '\')">' +
+                            '<div class="severity-title">' +
+                                '<span class="severity-name">' + sev + '</span>' +
+                                '<span class="severity-count">' + grouped[sev].length + ' CVE' + (grouped[sev].length !== 1 ? 's' : '') + '</span>' +
+                            '</div>' +
+                            '<span class="collapse-icon" id="icon-' + sevId + '">▼</span>' +
+                        '</div>' +
+                        '<div class="severity-content expanded" id="' + sevId + '">';
+                    
+                    grouped[sev].forEach(function(result) {
+                        if (result.error) {
+                            html += '<div class="result-card">' +
+                                '<div class="result-header">' +
+                                    '<div class="cve-id">' + result.cveId + '</div>' +
+                                    '<span class="badge na">ERROR</span>' +
+                                '</div>' +
+                                '<div class="description" style="color: #da1e28;">' + result.error + '</div>' +
+                            '</div>';
+                        } else {
+                            var ageClass = 'age-recent';
+                            var ageLabel = 'Recent';
+                            if (result.ageDays > 365) {
+                                ageClass = 'age-old';
+                                ageLabel = 'Very Old';
+                            } else if (result.ageDays > 180) {
+                                ageClass = 'age-old';
+                                ageLabel = 'Old (>6 months)';
+                            } else if (result.ageDays > 90) {
+                                ageClass = 'age-medium';
+                                ageLabel = 'Moderate';
+                            }
+                            
+                            var publishedStr = result.published.toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            });
+                            
+                            html += '<div class="result-card">' +
+                                '<div class="result-header">' +
+                                    '<div class="cve-id">' +
+                                        '<a href="https://nvd.nist.gov/vuln/detail/' + result.cveId + '" target="_blank" class="link">' + result.cveId + '</a>' +
+                                    '</div>' +
+                                    '<span class="badge ' + result.severityClass + '">' + result.severity + '</span>' +
+                                '</div>' +
+                                '<div class="description">' + result.description + '</div>' +
+                                '<div class="info-grid">' +
+                                    '<div class="info-item">' +
+                                        '<div class="info-label">Published Date</div>' +
+                                        '<div class="info-value">' + publishedStr + '</div>' +
+                                    '</div>' +
+                                    '<div class="info-item">' +
+                                        '<div class="info-label">Age</div>' +
+                                        '<div class="info-value ' + ageClass + '">' + result.ageDays + ' days (' + ageLabel + ')</div>' +
+                                    '</div>' +
+                                    '<div class="info-item">' +
+                                        '<div class="info-label">Years Old</div>' +
+                                        '<div class="info-value">' + (result.ageDays / 365).toFixed(1) + ' years</div>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>';
+                        }
+                    });
+                    
+                    html += '</div></div>';
+                }
+            });
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        function toggleSection(sectionId) {
+            var content = document.getElementById(sectionId);
+            var icon = document.getElementById('icon-' + sectionId);
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                icon.classList.add('collapsed');
+            } else {
+                content.classList.add('expanded');
+                icon.classList.remove('collapsed');
+            }
+        }
+        
+        function downloadCSV() {
+            var csv = 'CVE ID,Severity,Published Date,Age (Days),Age (Years),Status (>6 months),Description\n';
+            
+            globalResults.forEach(function(result) {
+                if (!result.error) {
+                    var publishedStr = result.published.toISOString().split('T')[0];
+                    var yearsOld = (result.ageDays / 365).toFixed(1);
+                    var status = result.ageDays >= 180 ? 'Old' : 'Recent';
+                    var description = '"' + result.description.replace(/"/g, '""') + '"';
+                    
+                    csv += result.cveId + ',' +
+                           result.severity + ',' +
+                           publishedStr + ',' +
+                           result.ageDays + ',' +
+                           yearsOld + ',' +
+                           status + ',' +
+                           description + '\n';
+                }
+            });
+            
+            var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement('a');
+            var url = URL.createObjectURL(blob);
+            
+            var timestamp = new Date().toISOString().split('T')[0];
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'cve_age_report_' + timestamp + '.csv');
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        var currentTimelineView = 'month'; // 'month' or 'quarter'
+        
+        function generateTimeline(results) {
+            var timelineDiv = document.getElementById('timeline');
+            
+            // Filter out errors
+            var validResults = results.filter(function(r) { return !r.error; });
+            
+            if (validResults.length === 0) {
+                timelineDiv.innerHTML = '';
+                timelineDiv.style.display = 'none';
+                return;
+            }
+            
+            // Group by time period
+            var grouped = currentTimelineView === 'month' ? groupByMonth(validResults) : groupByQuarter(validResults);
+            
+            // Generate HTML
+            var html = '<div class="timeline-container">' +
+                '<div class="timeline-header">' +
+                    '<div class="timeline-title">📅 Vulnerability Timeline</div>' +
+                    '<div class="timeline-toggle">' +
+                        '<button class="toggle-btn ' + (currentTimelineView === 'month' ? 'active' : '') + '" onclick="switchTimelineView(\'month\')">By Month</button>' +
+                        '<button class="toggle-btn ' + (currentTimelineView === 'quarter' ? 'active' : '') + '" onclick="switchTimelineView(\'quarter\')">By Quarter</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="timeline-legend">' +
+                    '<div class="legend-item"><div class="legend-color" style="background: #da1e28;"></div><div class="legend-label">Critical</div></div>' +
+                    '<div class="legend-item"><div class="legend-color" style="background: #f1c21b;"></div><div class="legend-label">High</div></div>' +
+                    '<div class="legend-item"><div class="legend-color" style="background: #0f62fe;"></div><div class="legend-label">Medium</div></div>' +
+                    '<div class="legend-item"><div class="legend-color" style="background: #24a148;"></div><div class="legend-label">Low</div></div>' +
+                    '<div class="legend-item"><div class="legend-color" style="background: #8d8d8d;"></div><div class="legend-label">N/A</div></div>' +
+                '</div>';
+            
+            html += renderTimelineChart(grouped);
+            html += '</div>';
+            
+            timelineDiv.innerHTML = html;
+        }
+        
+        function groupByMonth(results) {
+            var groups = {};
+            
+            results.forEach(function(result) {
+                var date = new Date(result.published);
+                var key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+                var label = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+                
+                if (!groups[key]) {
+                    groups[key] = {
+                        key: key,
+                        label: label,
+                        date: new Date(date.getFullYear(), date.getMonth(), 1),
+                        cves: [],
+                        bySeverity: { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, 'N/A': 0 }
+                    };
+                }
+                
+                groups[key].cves.push(result);
+                groups[key].bySeverity[result.severity]++;
+            });
+            
+            // Convert to array and sort by date
+            var arr = Object.values(groups);
+            arr.sort(function(a, b) { return a.date - b.date; });
+            
+            return arr;
+        }
+        
+        function groupByQuarter(results) {
+            var groups = {};
+            
+            results.forEach(function(result) {
+                var date = new Date(result.published);
+                var quarter = Math.floor(date.getMonth() / 3) + 1;
+                var key = date.getFullYear() + '-Q' + quarter;
+                var label = 'Q' + quarter + ' ' + date.getFullYear();
+                
+                if (!groups[key]) {
+                    groups[key] = {
+                        key: key,
+                        label: label,
+                        date: new Date(date.getFullYear(), (quarter - 1) * 3, 1),
+                        cves: [],
+                        bySeverity: { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, 'N/A': 0 }
+                    };
+                }
+                
+                groups[key].cves.push(result);
+                groups[key].bySeverity[result.severity]++;
+            });
+            
+            // Convert to array and sort by date
+            var arr = Object.values(groups);
+            arr.sort(function(a, b) { return a.date - b.date; });
+            
+            return arr;
+        }
+        
+        function renderTimelineChart(groups) {
+            if (groups.length === 0) return '';
+            
+            var maxCount = 0;
+            groups.forEach(function(g) {
+                if (g.cves.length > maxCount) maxCount = g.cves.length;
+            });
+            
+            var barWidth = Math.max(60, Math.min(120, 1000 / groups.length));
+            var chartHeight = 400;
+            var barMaxHeight = 300;
+            var padding = { top: 40, right: 20, bottom: 80, left: 50 };
+            var chartWidth = groups.length * (barWidth + 10) + padding.left + padding.right;
+            
+            var html = '<div class="timeline-svg"><svg width="' + chartWidth + '" height="' + chartHeight + '">';
+            
+            // Draw axis
+            html += '<line x1="' + padding.left + '" y1="' + (padding.top + barMaxHeight) + '" ' +
+                    'x2="' + (chartWidth - padding.right) + '" y2="' + (padding.top + barMaxHeight) + '" ' +
+                    'class="timeline-axis"/>';
+            
+            // Draw bars
+            groups.forEach(function(group, i) {
+                var x = padding.left + i * (barWidth + 10);
+                var totalHeight = (group.cves.length / maxCount) * barMaxHeight;
+                
+                // Stack bars by severity
+                var severities = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'N/A'];
+                var colors = {
+                    'CRITICAL': '#da1e28',
+                    'HIGH': '#f1c21b',
+                    'MEDIUM': '#0f62fe',
+                    'LOW': '#24a148',
+                    'N/A': '#8d8d8d'
+                };
+                
+                var currentY = padding.top + barMaxHeight;
+                var totalInGroup = group.cves.length;
+                
+                severities.forEach(function(sev) {
+                    var count = group.bySeverity[sev];
+                    if (count > 0) {
+                        var segmentHeight = (count / totalInGroup) * totalHeight;
+                        currentY -= segmentHeight;
+                        
+                        html += '<rect x="' + x + '" y="' + currentY + '" ' +
+                                'width="' + barWidth + '" height="' + segmentHeight + '" ' +
+                                'fill="' + colors[sev] + '" ' +
+                                'stroke="#161616" stroke-width="1" ' +
+                                'class="timeline-period" ' +
+                                'onmouseover="showTooltip(event, \'' + group.label + '\', \'' + sev + '\', ' + count + ', ' + totalInGroup + ')" ' +
+                                'onmouseout="hideTooltip()" ' +
+                                'onclick="filterBySeverityAndPeriod(\'' + group.key + '\', \'' + sev + '\')"/>';
+                    }
+                });
+                
+                // Draw count label
+                html += '<text x="' + (x + barWidth / 2) + '" y="' + (padding.top + barMaxHeight - totalHeight - 5) + '" ' +
+                        'text-anchor="middle" class="timeline-count">' + group.cves.length + '</text>';
+                
+                // Draw period label (rotated)
+                html += '<text x="' + (x + barWidth / 2) + '" y="' + (padding.top + barMaxHeight + 15) + '" ' +
+                        'text-anchor="end" transform="rotate(-45 ' + (x + barWidth / 2) + ' ' + (padding.top + barMaxHeight + 15) + ')" ' +
+                        'class="timeline-label">' + group.label + '</text>';
+            });
+            
+            html += '</svg></div>';
+            
+            return html;
+        }
+        
+        function switchTimelineView(view) {
+            currentTimelineView = view;
+            generateTimeline(globalResults);
+        }
+        
+        function showTooltip(event, period, severity, count, total) {
+            var tooltip = document.getElementById('tooltip');
+            var percentage = Math.round((count / total) * 100);
+            
+            tooltip.innerHTML = '<strong>' + period + '</strong><br>' +
+                                '<strong>' + severity + ':</strong> ' + count + ' CVE' + (count !== 1 ? 's' : '') + '<br>' +
+                                '<em>' + percentage + '% of period total</em>';
+            
+            tooltip.className = 'timeline-tooltip show';
+            tooltip.style.left = (event.pageX + 10) + 'px';
+            tooltip.style.top = (event.pageY - 10) + 'px';
+        }
+        
+        function hideTooltip() {
+            var tooltip = document.getElementById('tooltip');
+            tooltip.className = 'timeline-tooltip';
+        }
+        
+        function filterBySeverityAndPeriod(periodKey, severity) {
+            // Scroll to the severity section
+            var sectionId = 'severity-' + severity.toLowerCase();
+            var section = document.getElementById(sectionId);
+            
+            if (section) {
+                // Expand the section if collapsed
+                if (!section.classList.contains('expanded')) {
+                    toggleSection(sectionId);
+                }
+                
+                // Scroll to it
+                section.parentElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // Highlight briefly
+                section.parentElement.style.boxShadow = '0 0 0 3px #0f62fe';
+                setTimeout(function() {
+                    section.parentElement.style.boxShadow = '';
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>

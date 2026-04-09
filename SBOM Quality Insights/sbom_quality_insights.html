@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SBOM Quality Insights</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js"></script>
+  <style>
+    /* IBM Carbon Design System inspired styles */
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f4f4f4;
+      min-height: 100vh; padding: 20px;
+    }
+    .container { max-width: 1400px; margin: 0 auto; background: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(90deg, #0f62fe 0%, #4589ff 100%); color: #ffffff; padding: 32px 40px; position: relative; }
+    .header h1 { font-size: 2em; margin-bottom: 8px; font-weight: 400; letter-spacing: 0; display: flex; align-items: center; gap: 12px; }
+    .header p  { font-size: 0.95em; opacity: 0.95; font-weight: 300; }
+    .version-stamp { position: absolute; top: 16px; right: 24px; font-size: 0.75em; opacity: 0.8; background: rgba(255,255,255,0.15); padding: 4px 12px; font-weight: 400; }
+    .local-notice { background:#d0e2ff; color:#001d6c; padding:12px; text-align:center; font-weight:400; border-bottom:1px solid #a6c8ff; font-size:0.875rem; }
+    .upload-section { padding:48px 40px; text-align:center; background:#f4f4f4; }
+    .upload-box { border:2px dashed #8d8d8d; padding:48px 32px; background:#ffffff; cursor:pointer; transition:all .2s ease; }
+    .upload-box:hover { border-color:#0f62fe; background:#f4f4f4; }
+    .upload-box.drag-over { border-color:#0f62fe; background:#e5f6ff; }
+    .upload-icon { font-size:3em; margin-bottom:16px; opacity:0.7; }
+    .btn { background:#0f62fe; color:#ffffff; border:none; padding:11px 24px; font-size:0.875rem; font-weight:400; cursor:pointer; transition:all .1s ease; display:inline-block; margin:5px; }
+    .btn:hover { background:#0353e9; }
+    .btn:active { background:#002d9c; }
+    .btn-export { background:#8a3ffc; }
+    .btn-export:hover { background:#6929c4; }
+    .file-input { display:none; }
+    .results-section { padding:32px 40px; display:none; background:#ffffff; }
+    .results-section.show { display:block; }
+    .tab-navigation { display:flex; background:#f4f4f4; border-bottom:1px solid #e0e0e0; padding:0 24px; }
+    .tab-button { padding:14px 20px; background:transparent; border:none; font-size:0.875rem; font-weight:400; color:#525252; cursor:pointer; border-bottom:2px solid transparent; transition:all .1s ease; }
+    .tab-button:hover { color:#161616; background:#e0e0e0; }
+    .tab-button.active { color:#0f62fe; border-bottom-color:#0f62fe; background:#ffffff; }
+    .tab-content { display:none; padding:24px 0; }
+    .tab-content.active { display:block; }
+    .info-card { background:#ffffff; padding:24px; margin-bottom:16px; border:1px solid #e0e0e0; }
+    .info-card h3 { color:#161616; margin-bottom:20px; font-size:1.25rem; font-weight:400; }
+    .info-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:24px; }
+    .info-item { background:#f4f4f4; padding:16px; border-left:3px solid #0f62fe; }
+    .info-item label { font-weight:400; color:#525252; font-size:0.75rem; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.32px; }
+    .info-item value { color:#161616; font-size:0.95rem; display:block; word-break:break-word; }
+    .stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin:20px 0; }
+    .stat-box { background:#f4f4f4; padding:24px 20px; border:2px solid #e0e0e0; text-align:center; transition:all .2s ease; }
+    .stat-box:hover { border-color:#0f62fe; }
+    .stat-box .stat-value { font-size:2.5em; font-weight:300; color:#161616; display:block; line-height:1.2; margin-bottom:8px; }
+    .stat-box .stat-label { font-size:0.75rem; color:#525252; margin-top:8px; text-transform:uppercase; letter-spacing:0.32px; font-weight:400; }
+    /* Status-specific stat boxes matching the image with colored backgrounds */
+    .stat-box.outdated { border-color:#f1c21b; background:#fef6e6; }
+    .stat-box.outdated .stat-value { color:#8e6a00; }
+    .stat-box.outdated .stat-label { color:#8e6a00; }
+    .stat-box.uptodate { border-color:#24a148; background:#defbe6; }
+    .stat-box.uptodate .stat-value { color:#0e6027; }
+    .stat-box.uptodate .stat-label { color:#0e6027; }
+    .stat-box.old { border-color:#fa4d56; background:#fff1f1; }
+    .stat-box.old .stat-value { color:#750e13; }
+    .stat-box.old .stat-label { color:#750e13; }
+    .stat-box.unknown { border-color:#8d8d8d; background:#f4f4f4; }
+    .stat-box.unknown .stat-value { color:#525252; }
+    .stat-box.unknown .stat-label { color:#525252; }
+    .stat-box.total { border-color:#525252; background:#e0e0e0; }
+    .stat-box.total .stat-value { color:#161616; }
+    .stat-box.total .stat-label { color:#161616; }
+    .purl-indicator { display:inline-block; padding:4px 10px; font-size:0.75rem; font-weight:400; margin-left:8px; background:#e0e0e0; color:#161616; }
+    .purl-generic { background:#fff1f1; color:#750e13; }
+    .purl-github { background:#e8daff; color:#491d8b; }
+    .collapsible-section { margin:20px 0; border:1px solid #e0e0e0; }
+    .collapsible-header { background:#f4f4f4; color:#161616; padding:16px 20px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e0e0e0; }
+    .collapsible-header:hover { background:#e0e0e0; }
+    .collapsible-header h4 { font-size:1rem; flex:1; font-weight:400; }
+    .toggle-icon { transition: transform .2s ease; font-size:1.2em; color:#525252; }
+    .toggle-icon.rotated { transform: rotate(180deg); }
+    .collapsible-content { display:none; padding:20px; background:#ffffff; }
+    .collapsible-content.show { display:block; }
+    .table-wrapper { overflow-x:auto; margin-top:16px; }
+    .data-table { width:100%; border-collapse:collapse; margin-top:16px; table-layout:fixed; }
+    .data-table th { background:#f4f4f4; padding:12px 16px; text-align:left; font-weight:400; color:#161616; border-bottom:1px solid #e0e0e0; font-size:0.875rem; }
+    .data-table td { padding:12px 16px; border-bottom:1px solid #e0e0e0; color:#161616; word-wrap:break-word; word-break:break-all; overflow-wrap:break-word; font-size:0.875rem; max-width:0; }
+    .data-table tr:hover { background:#f4f4f4; }
+    .loading { display:none; text-align:center; padding:40px; }
+    .loading.show { display:block; }
+    .spinner { border:3px solid #e0e0e0; border-top:3px solid #0f62fe; border-radius:50%; width:48px; height:48px; animation:spin 0.8s linear infinite; margin:0 auto 20px; }
+    @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+    .duplicate-badge { background:#fff1f1; color:#750e13; padding:2px 8px; font-size:0.75rem; font-weight:400; margin-left:8px; border:1px solid #ffd7d9; }
+    .toggle-duplicates { background:#ffffff; border:1px solid #8d8d8d; color:#161616; padding:11px 20px; cursor:pointer; font-weight:400; margin:10px 5px; font-size:0.875rem; transition:all .1s ease; }
+    .toggle-duplicates:hover { background:#e0e0e0; }
+    .toggle-duplicates.active { background:#0f62fe; color:#ffffff; border-color:#0f62fe; }
+    .section-header { background:#f4f4f4; padding:16px 20px; margin-bottom:16px; display:flex; justify-content:space-between; cursor:pointer; border:1px solid #e0e0e0; transition:all .2s ease; }
+    .section-header:hover { background:#e0e0e0; }
+    .section-header.red { background:#fff1f1; border-color:#ffd7d9; }
+    .section-header.red:hover { background:#ffe0e0; }
+    .section-header.orange { background:#fef6e6; border-color:#f1c21b; }
+    .section-header.orange:hover { background:#fdedc4; }
+    .section-header.purple { background:#e8daff; border-color:#d4bbff; }
+    .section-header.purple:hover { background:#d4bbff; }
+    .section-count { background:#ffffff; padding:4px 12px; font-weight:400; font-size:0.875rem; border:1px solid #e0e0e0; }
+    .ntia-status-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin:16px 0; }
+    .ntia-status-item { padding:12px 16px; background:#f4f4f4; display:flex; align-items:center; gap:10px; font-size:0.875rem; border:1px solid #e0e0e0; }
+    .ntia-status-item.pass { background:#e5f6eb; color:#0e6027; border-color:#24a148; }
+    .ntia-status-item.fail { background:#fff1f1; color:#750e13; border-color:#ffd7d9; }
+  </style>
+</head>
+<body>
+  <script>
+    if (window.location.protocol !== 'file:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && window.location.hostname !== '') {
+      document.body.innerHTML = '<div style="text-align:center; padding:50px; background:#f8d7da; color:#721c24; min-height:100vh;"><h1>⚠️ Security Warning</h1><p style="font-size:1.2em; margin:20px;">This tool can only be run locally.</p></div>';
+      throw new Error('Must run locally');
+    }
+  </script>
+  <div class="container">
+    <div class="local-notice">🔒 Running Locally — All processing in your browser. No data uploaded.</div>
+    <div class="header">
+      <div class="version-stamp">v1.0.0</div>
+      <h1>🔍 SBOM Quality Insights</h1>
+      <p>Comprehensive SBOM Analysis, Validation & Export Tool</p>
+    </div>
+    <div class="upload-section">
+      <div class="upload-box" id="uploadBox">
+        <div class="upload-icon">📄</div>
+        <h2>Upload SBOM File</h2>
+        <p>Drag and drop your JSON SBOM (CycloneDX or SPDX 2.3)</p>
+        <button class="btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
+        <input type="file" id="fileInput" class="file-input" accept=".json">
+      </div>
+    </div>
+    <div class="loading" id="loading"><div class="spinner"></div><p>Processing SBOM...</p></div>
+    <div class="results-section" id="results"></div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script>
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
+    const loading = document.getElementById('loading');
+    const results = document.getElementById('results');
+    
+    // Global variable to store current SBOM data
+    let currentSBOMData = null;
+    
+    uploadBox.addEventListener('dragover', (e) => { e.preventDefault(); uploadBox.classList.add('drag-over'); });
+    uploadBox.addEventListener('dragleave', () => uploadBox.classList.remove('drag-over'));
+    uploadBox.addEventListener('drop', (e) => {
+      e.preventDefault(); uploadBox.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.json')) { handleFile(file); } else { alert('Please upload a JSON file'); }
+    });
+    fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) { handleFile(file); } });
+
+    function handleFile(file) {
+      loading.classList.add('show'); results.classList.remove('show'); results.innerHTML = '';
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const sbomData = JSON.parse(e.target.result);
+          processSBOM(sbomData, file.name);
+        } catch (error) {
+          loading.classList.remove('show');
+          alert('Error parsing JSON: ' + error.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.querySelector('[data-tab="' + tabName + '"]').classList.add('active');
+      document.getElementById(tabName + '-tab').classList.add('active');
+    }
+
+    function detectFormat(sbomData) {
+      if (sbomData.bomFormat && String(sbomData.bomFormat).toLowerCase() === 'cyclonedx') {
+        return { format: 'CycloneDX', version: sbomData.specVersion || 'Unknown' };
+      } else if (sbomData.spdxVersion || sbomData.SPDXID) {
+        return { format: 'SPDX', version: sbomData.spdxVersion || 'Unknown' };
+      }
+      return { format: 'Unknown', version: 'N/A' };
+    }
+
+    function extractToolInfo(sbomData, format) {
+      let toolName = 'Unknown', toolVersion = 'Unknown';
+      if (format === 'CycloneDX') {
+        const metadata = sbomData.metadata || {};
+        const tools = metadata.tools || {};
+        if (typeof tools === 'object' && !Array.isArray(tools)) {
+          const components = tools.components || [];
+          if (components.length > 0) { toolName = components[0].name || 'Unknown'; toolVersion = components[0].version || 'Unknown'; }
+        } else if (Array.isArray(tools) && tools.length > 0) {
+          toolName = tools[0].name || tools[0].vendor || 'Unknown';
+          toolVersion = tools[0].version || 'Unknown';
+        }
+      } else if (format === 'SPDX') {
+        const creationInfo = sbomData.creationInfo || {};
+        const creators = creationInfo.creators || [];
+        creators.forEach(creator => {
+          if (typeof creator === 'string' && creator.startsWith('Tool:')) {
+            const toolInfo = creator.replace('Tool:', '').trim();
+            if (toolInfo.includes('-')) {
+              const parts = toolInfo.split('-'); toolName = parts[0]; toolVersion = parts[1] || 'Unknown';
+            } else { toolName = toolInfo; }
+          }
+        });
+      }
+      return { toolName, toolVersion };
+    }
+
+    function extractCycloneDXLicense(comp) {
+      if (!comp.licenses || !Array.isArray(comp.licenses) || comp.licenses.length === 0) return 'Not specified';
+      const licenseNames = comp.licenses.map(lic => {
+        if (lic.license) {
+          if (lic.license.id) return lic.license.id;
+          if (lic.license.name) return lic.license.name;
+        }
+        if (lic.expression) return lic.expression;
+        return null;
+      }).filter(Boolean);
+      return licenseNames.length > 0 ? licenseNames.join(', ') : 'Not specified';
+    }
+
+    function extractComponentSupplier(comp) {
+      if (comp.supplier && comp.supplier.name) return comp.supplier.name;
+      if (comp.author) return comp.author;
+      if (comp.manufacturer) return comp.manufacturer;
+      if (comp.publisher) return comp.publisher;
+      return 'Not specified';
+    }
+
+    function getComponentKey(comp) {
+      if (comp.PURL && comp.PURL !== 'N/A' && comp.PURL.startsWith('pkg:')) return comp.PURL;
+      const name = comp['Component Name'] || comp['Package Name'] || 'unknown';
+      const version = comp.Version || 'unknown';
+      return name + '@' + version;
+    }
+
+    function deduplicateComponents(componentData) {
+      const uniqueMap = new Map();
+      const duplicateCounts = new Map();
+      componentData.forEach(comp => {
+        const key = getComponentKey(comp);
+        if (!uniqueMap.has(key)) {
+          uniqueMap.set(key, Object.assign({}, comp, { duplicateCount: 1 }));
+          duplicateCounts.set(key, 1);
+        } else {
+          duplicateCounts.set(key, duplicateCounts.get(key) + 1);
+          uniqueMap.get(key).duplicateCount = duplicateCounts.get(key);
+        }
+      });
+      return {
+        unique: Array.from(uniqueMap.values()),
+        all: componentData,
+        totalCount: componentData.length,
+        uniqueCount: uniqueMap.size,
+        duplicateStats: Array.from(duplicateCounts.entries())
+          .filter(function(x) { return x[1] > 1; })
+          .sort(function(a, b) { return b[1] - a[1]; })
+          .slice(0, 10)
+          .map(function(x) { return { key: x[0], count: x[1] }; })
+      };
+    }
+
+    // ===== GITHUB PURL WITHOUT CPE VALIDATION =====
+    function validateGitHubPurlsWithoutCPE(sbomData) {
+      const componentsWithIssue = [];
+      const components = sbomData.components || [];
+      let totalCPECount = 0;
+      
+      components.forEach((comp, idx) => {
+        const purl = comp.purl || '';
+        const hasCPE = comp.cpe || false;
+        
+        // Count total CPEs
+        if (hasCPE) {
+          totalCPECount++;
+        }
+        
+        // Check if component has a GitHub PURL
+        const isGitHubPurl = purl.toLowerCase().startsWith('pkg:github/');
+        
+        if (isGitHubPurl && !hasCPE) {
+          componentsWithIssue.push({
+            componentIndex: idx,
+            name: comp.name || 'Unknown',
+            version: comp.version || 'N/A',
+            purl: purl,
+            type: comp.type || 'N/A',
+            issue: 'GitHub PURL without CPE - may prevent CVE mapping'
+          });
+        }
+      });
+      
+      return {
+        passed: componentsWithIssue.length === 0,
+        componentsWithIssue: componentsWithIssue,
+        stats: {
+          totalComponents: components.length,
+          affectedComponents: componentsWithIssue.length,
+          totalCPECount: totalCPECount,
+          note: 'Components with pkg:github/* PURLs should include a CPE for proper CVE mapping'
+        }
+      };
+    }
+
+    // ===== DEPENDENCY VALIDATION FUNCTIONS =====
+    function validateDependencies(sbomData) {
+      const errors = [];
+      const warnings = [];
+      
+      if (!sbomData.dependencies || !Array.isArray(sbomData.dependencies)) {
+        warnings.push({
+          issue: 'No dependencies array found in SBOM',
+          severity: 'warning',
+          type: 'missing-dependencies'
+        });
+        return {
+          passed: true,
+          errors: [],
+          warnings: warnings,
+          issues: warnings,
+          stats: {
+            totalDependencies: 0,
+            duplicateRefs: 0,
+            duplicateDependsOn: 0,
+            note: 'No dependencies to validate'
+          }
+        };
+      }
+      
+      const dependencies = sbomData.dependencies;
+      const refCounts = {};
+      const duplicateRefs = [];
+      let duplicateDependsOnCount = 0;
+      
+      dependencies.forEach((dep, idx) => {
+        const ref = dep.ref;
+        if (!ref) {
+          errors.push({
+            dependencyIndex: idx,
+            issue: 'Dependency object missing "ref" field',
+            severity: 'error',
+            type: 'missing-ref',
+            dependency: JSON.parse(JSON.stringify(dep))
+          });
+          return;
+        }
+        
+        if (!refCounts[ref]) {
+          refCounts[ref] = [];
+        }
+        refCounts[ref].push(idx);
+      });
+      
+      for (const [ref, indices] of Object.entries(refCounts)) {
+        if (indices.length > 1) {
+          duplicateRefs.push(ref);
+          errors.push({
+            ref: ref,
+            issue: `Duplicate dependency entries: ref "${ref}" appears ${indices.length} times`,
+            severity: 'error',
+            type: 'duplicate-ref',
+            indices: indices,
+            occurrences: indices.length
+          });
+        }
+      }
+      
+      dependencies.forEach((dep, idx) => {
+        const ref = dep.ref;
+        const dependsOn = dep.dependsOn || [];
+        
+        if (!Array.isArray(dependsOn)) {
+          errors.push({
+            dependencyIndex: idx,
+            ref: ref,
+            issue: 'dependsOn must be an array',
+            severity: 'error',
+            type: 'invalid-dependsOn-type',
+            currentType: typeof dependsOn
+          });
+          return;
+        }
+        
+        const seen = new Set();
+        const duplicates = [];
+        dependsOn.forEach(bomRef => {
+          if (seen.has(bomRef)) {
+            duplicates.push(bomRef);
+          }
+          seen.add(bomRef);
+        });
+        
+        if (duplicates.length > 0) {
+          duplicateDependsOnCount++;
+          errors.push({
+            dependencyIndex: idx,
+            ref: ref,
+            issue: `dependsOn array contains duplicate values: ${duplicates.join(', ')}`,
+            severity: 'error',
+            type: 'duplicate-dependsOn',
+            duplicates: duplicates,
+            dependsOn: dependsOn
+          });
+        }
+      });
+      
+      const allIssues = errors.concat(warnings);
+      
+      return {
+        passed: errors.length === 0,
+        errors: errors,
+        warnings: warnings,
+        issues: allIssues,
+        stats: {
+          totalDependencies: dependencies.length,
+          duplicateRefs: duplicateRefs.length,
+          duplicateDependsOn: duplicateDependsOnCount,
+          note: 'Each dependency ref must be unique, and dependsOn arrays must contain unique values'
+        }
+      };
+    }
+
+    function fixDependencies(sbomData) {
+      const fixedSBOM = JSON.parse(JSON.stringify(sbomData));
+      let fixCount = 0;
+      const fixLog = [];
+      
+      if (!fixedSBOM.dependencies || !Array.isArray(fixedSBOM.dependencies)) {
+        return {
+          sbom: fixedSBOM,
+          fixCount: 0,
+          fixLog: [],
+          note: 'No dependencies array to fix'
+        };
+      }
+      
+      const depsByRef = {};
+      
+      fixedSBOM.dependencies.forEach(dep => {
+        const ref = dep.ref;
+        if (!ref) {
+          return;
+        }
+        
+        const dependsOn = dep.dependsOn || [];
+        
+        if (!depsByRef[ref]) {
+          depsByRef[ref] = new Set();
+        }
+        
+        dependsOn.forEach(bomRef => {
+          if (bomRef) {
+            depsByRef[ref].add(bomRef);
+          }
+        });
+      });
+      
+      const originalDepCount = fixedSBOM.dependencies.length;
+      const mergedDepCount = Object.keys(depsByRef).length;
+      
+      if (originalDepCount !== mergedDepCount) {
+        fixCount++;
+        fixLog.push({
+          action: 'Merged duplicate dependency entries',
+          before: `${originalDepCount} dependency objects`,
+          after: `${mergedDepCount} unique dependency objects`
+        });
+      }
+      
+      let dependsOnDeduped = 0;
+      for (const [ref, dependsSet] of Object.entries(depsByRef)) {
+        const originalDeps = fixedSBOM.dependencies.filter(d => d.ref === ref);
+        const totalOriginalDependsOn = originalDeps.reduce((sum, d) => sum + (d.dependsOn || []).length, 0);
+        if (totalOriginalDependsOn > dependsSet.size) {
+          dependsOnDeduped++;
+        }
+      }
+      
+      if (dependsOnDeduped > 0) {
+        fixCount++;
+        fixLog.push({
+          action: 'Deduplicated dependsOn arrays',
+          affectedRefs: dependsOnDeduped
+        });
+      }
+      
+      fixedSBOM.dependencies = Object.entries(depsByRef).map(([ref, dependsSet]) => {
+        return {
+          ref: ref,
+          dependsOn: Array.from(dependsSet).sort()
+        };
+      });
+      
+      return {
+        sbom: fixedSBOM,
+        fixCount: fixCount,
+        fixLog: fixLog,
+        note: 'Dependencies merged and deduplicated: each ref appears once with unique dependsOn values'
+      };
+    }
+
+    function analyzeComponents(sbomData) {
+      const components = sbomData.components || [];
+      const libraryFrameworkComponents = [];
+      const ntiaFailedComponents = [];
+      const genericPurlComponents = [];
+      const githubPurlComponents = [];
+
+      components.forEach(function(comp) {
+        const type = (comp.type || '').toLowerCase();
+        const name = comp.name || '';
+        const version = comp.version || '';
+        const purl = comp.purl || '';
+        const isLibraryOrFramework = type === 'library' || type === 'framework';
+        const hasName = !!name;
+        const hasVersion = version.toLowerCase() !== 'unknown' && !!version;
+        const hasSupplier = !!(comp.supplier || comp.author || comp.manufacturer || comp.publisher);
+        const hasIdentifier = purl.startsWith('pkg:') || comp.cpe || comp.swid;
+        const meetsNTIA = hasName && hasVersion && hasSupplier && hasIdentifier;
+        const isGenericPurl = purl.startsWith('pkg:generic/');
+        const isGithubPurl = purl.startsWith('pkg:github/');
+        
+        const compData = {
+          name: name || 'Unknown',
+          version: version || 'N/A',
+          type: type || 'N/A',
+          purl: purl || 'N/A',
+          supplier: extractComponentSupplier(comp),
+          missingCriteria: []
+        };
+        
+        if (!hasName) compData.missingCriteria.push('Missing name');
+        if (!hasVersion) compData.missingCriteria.push('Missing/unknown version');
+        if (!hasSupplier) compData.missingCriteria.push('Missing supplier');
+        if (!hasIdentifier) compData.missingCriteria.push('Missing identifier');
+        
+        if (isLibraryOrFramework) libraryFrameworkComponents.push(compData);
+        if (!meetsNTIA) ntiaFailedComponents.push(compData);
+        if (isGenericPurl) genericPurlComponents.push(compData);
+        if (isGithubPurl) githubPurlComponents.push(compData);
+      });
+
+      // Deduplicate each category
+      function deduplicateAnalysisComponents(compArray) {
+        const uniqueMap = new Map();
+        compArray.forEach(function(comp) {
+          const key = comp.purl !== 'N/A' && comp.purl.startsWith('pkg:') ? comp.purl : comp.name + '@' + comp.version;
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, comp);
+          }
+        });
+        return Array.from(uniqueMap.values());
+      }
+
+      return {
+        libraryFrameworkComponents: deduplicateAnalysisComponents(libraryFrameworkComponents),
+        ntiaFailedComponents: deduplicateAnalysisComponents(ntiaFailedComponents),
+        genericPurlComponents: deduplicateAnalysisComponents(genericPurlComponents),
+        githubPurlComponents: deduplicateAnalysisComponents(githubPurlComponents),
+        totalComponents: components.length
+      };
+    }
+
+    function extractCycloneDXData(sbomData) {
+      const metadata = sbomData.metadata || {};
+      const components = sbomData.components || [];
+      const componentData = components.map(function(comp) {
+        return {
+          'Component Name': comp.name || 'N/A',
+          'Version': comp.version || 'N/A',
+          'Type': comp.type || 'N/A',
+          'PURL': comp.purl || 'N/A',
+          'Supplier': extractComponentSupplier(comp),
+          'License': extractCycloneDXLicense(comp),
+          'BOM-Ref': comp['bom-ref'] || 'N/A'
+        };
+      });
+      const deduped = deduplicateComponents(componentData);
+      const analysis = analyzeComponents(sbomData);
+      
+      // Add validations
+      const dependencyValidation = validateDependencies(sbomData);
+      const githubPurlValidation = validateGitHubPurlsWithoutCPE(sbomData);
+      
+      return Object.assign({}, deduped, {
+        analysis: analysis,
+        dependencyValidation: dependencyValidation,
+        githubPurlValidation: githubPurlValidation
+      });
+    }
+
+    function extractSPDXData(sbomData) {
+      const packageData = (sbomData.packages || []).map(function(pkg) {
+        return {
+          'Package Name': pkg.name || 'N/A',
+          'SPDXID': pkg.SPDXID || 'N/A',
+          'Version': pkg.versionInfo || 'N/A',
+          'Supplier': pkg.supplier || 'N/A',
+          'PURL': (function() {
+            if (!pkg.externalRefs) return 'N/A';
+            const purlRef = pkg.externalRefs.find(function(ref) { return ref.referenceCategory === 'PACKAGE-MANAGER' && ref.referenceType === 'purl'; });
+            return purlRef ? purlRef.referenceLocator : 'N/A';
+          })()
+        };
+      });
+      return deduplicateComponents(packageData);
+    }
+
+    function processSBOM(sbomData, fileName) {
+      const formatInfo = detectFormat(sbomData);
+      const toolInfo = extractToolInfo(sbomData, formatInfo.format);
+      let extractedData = {};
+      if (formatInfo.format === 'CycloneDX') {
+        extractedData = Object.assign({ type: 'CycloneDX' }, extractCycloneDXData(sbomData));
+      } else if (formatInfo.format === 'SPDX') {
+        extractedData = Object.assign({ type: 'SPDX' }, extractSPDXData(sbomData));
+      } else {
+        loading.classList.remove('show');
+        alert('Unknown SBOM format');
+        return;
+      }
+      // Store original SBOM for fix functions in global variable
+      currentSBOMData = sbomData;
+      loading.classList.remove('show');
+      displayResults(fileName, formatInfo, toolInfo.toolName, toolInfo.toolVersion, extractedData);
+    }
+
+    function escapeHtml(text) {
+      const map = { '&':'&', '<':'<', '>':'>', '"':'"', "'":'&#039;' };
+      return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+
+    function displayResults(fileName, formatInfo, toolName, toolVersion, extractedData) {
+      let html = '<div class="tab-navigation">';
+      html += '<button class="tab-button active" data-tab="overview" onclick="switchTab(\'overview\')">📊 Overview</button>';
+      html += '<button class="tab-button" data-tab="components" onclick="switchTab(\'components\')">📦 Components</button>';
+      if (extractedData.type === 'CycloneDX') {
+        html += '<button class="tab-button" data-tab="analysis" onclick="switchTab(\'analysis\')">🔍 Analysis</button>';
+      }
+      html += '<button class="tab-button" data-tab="export" onclick="switchTab(\'export\')">💾 Export</button>';
+      html += '</div>';
+      
+      html += '<div id="overview-tab" class="tab-content active">';
+      html += '<div class="info-card"><h3>📋 SBOM Summary</h3><div class="info-grid">';
+      html += '<div class="info-item"><label>File Name</label><value>' + escapeHtml(fileName) + '</value></div>';
+      html += '<div class="info-item"><label>Format</label><value>' + formatInfo.format + '</value></div>';
+      html += '<div class="info-item"><label>Version</label><value>' + formatInfo.version + '</value></div>';
+      html += '<div class="info-item"><label>Tool</label><value>' + toolName + ' v' + toolVersion + '</value></div>';
+      html += '<div class="info-item"><label>Analysis Date</label><value>' + new Date().toLocaleString() + '</value></div>';
+      html += '</div></div>';
+
+      html += '<div class="info-card"><h3>📊 Component Statistics</h3><div class="stats-grid">';
+      html += '<div class="stat-box"><span class="stat-value">' + extractedData.uniqueCount + '</span><span class="stat-label">Unique Components</span></div>';
+      html += '<div class="stat-box"><span class="stat-value">' + extractedData.totalCount + '</span><span class="stat-label">Total Components</span></div>';
+      html += '<div class="stat-box"><span class="stat-value">' + (extractedData.totalCount - extractedData.uniqueCount) + '</span><span class="stat-label">Duplicates</span></div>';
+      html += '</div>';
+      
+      if (extractedData.type === 'CycloneDX' && extractedData.analysis) {
+        const genericCount = extractedData.analysis.genericPurlComponents.length;
+        const githubNoCPECount = extractedData.githubPurlValidation ? extractedData.githubPurlValidation.stats.affectedComponents : 0;
+        const cpeCount = extractedData.githubPurlValidation ? extractedData.githubPurlValidation.stats.totalCPECount : 0;
+        
+        html += '<div style="margin-top:16px; padding:16px; background:#fff9e6; border-radius:8px;">';
+        html += '<h5 style="color:#856404; margin-bottom:12px;">⚠️ PURL Type Indicators & Identifiers</h5>';
+        html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:16px;">';
+        
+        if (genericCount > 0) {
+          html += '<div style="padding:12px; background:white; border-radius:6px; text-align:center; border:2px solid #f1c21b;">';
+          html += '<span class="purl-indicator purl-generic">🔶 Generic PURLs</span>';
+          html += '<div style="margin-top:8px; font-size:1.5em; font-weight:700; color:#ff8c00;">' + genericCount + '</div>';
+          html += '</div>';
+        }
+        
+        if (githubNoCPECount > 0) {
+          html += '<div style="padding:12px; background:white; border-radius:6px; text-align:center; border:2px solid #8a3ffc;">';
+          html += '<span class="purl-indicator purl-github">🔷 GitHub (no CPE)</span>';
+          html += '<div style="margin-top:8px; font-size:1.5em; font-weight:700; color:#6f42c1;">' + githubNoCPECount + '</div>';
+          html += '</div>';
+        }
+        
+        html += '<div style="padding:12px; background:white; border-radius:6px; text-align:center; border:2px solid #24a148;">';
+        html += '<span style="display:inline-block; padding:4px 10px; font-size:0.75rem; font-weight:400; background:#defbe6; color:#0e6027;">✓ CPE Identifiers</span>';
+        html += '<div style="margin-top:8px; font-size:1.5em; font-weight:700; color:#0e6027;">' + cpeCount + '</div>';
+        html += '</div>';
+        
+        html += '</div></div>';
+      }
+      html += '</div></div>';
+      
+      html += '<div id="components-tab" class="tab-content">';
+      html += '<div class="collapsible-section"><div class="collapsible-header" onclick="toggleCollapsible(this)">';
+      html += '<h4>📦 Component Details (' + extractedData.uniqueCount + ' unique)</h4><span class="toggle-icon">▼</span></div>';
+      html += '<div class="collapsible-content show"><div style="text-align:center;margin:16px 0;">';
+      html += '<button class="toggle-duplicates active" onclick="toggleDuplicateView(\'unique\', this)">Unique Only</button>';
+      html += '<button class="toggle-duplicates" onclick="toggleDuplicateView(\'all\', this)">All (with duplicates)</button>';
+      html += '</div><div class="table-wrapper"><table class="data-table"><thead><tr>';
+      
+      if (extractedData.type === 'CycloneDX') {
+        html += '<th>Name</th><th>Version</th><th>Type</th><th>PURL</th><th>Supplier</th><th>License</th>';
+        html += '</tr></thead><tbody id="componentTableBody">';
+        extractedData.unique.forEach(function(comp) {
+          const dupBadge = comp.duplicateCount > 1 ? '<span class="duplicate-badge">' + comp.duplicateCount + 'x</span>' : '';
+          html += '<tr><td>' + escapeHtml(comp['Component Name']) + dupBadge + '</td>';
+          html += '<td>' + escapeHtml(comp['Version']) + '</td>';
+          html += '<td>' + escapeHtml(comp['Type']) + '</td>';
+          html += '<td>' + escapeHtml(comp['PURL']) + '</td>';
+          html += '<td>' + escapeHtml(comp['Supplier']) + '</td>';
+          html += '<td>' + escapeHtml(comp['License']) + '</td></tr>';
+        });
+      } else {
+        html += '<th>Name</th><th>Version</th><th>SPDXID</th><th>PURL</th><th>Supplier</th>';
+        html += '</tr></thead><tbody id="componentTableBody">';
+        extractedData.unique.forEach(function(pkg) {
+          const dupBadge = pkg.duplicateCount > 1 ? '<span class="duplicate-badge">' + pkg.duplicateCount + 'x</span>' : '';
+          html += '<tr><td>' + escapeHtml(pkg['Package Name']) + dupBadge + '</td>';
+          html += '<td>' + escapeHtml(pkg['Version']) + '</td>';
+          html += '<td>' + escapeHtml(pkg['SPDXID']) + '</td>';
+          html += '<td>' + escapeHtml(pkg['PURL']) + '</td>';
+          html += '<td>' + escapeHtml(pkg['Supplier']) + '</td></tr>';
+        });
+      }
+      html += '</tbody></table></div></div></div></div>';
+      
+      if (extractedData.type === 'CycloneDX' && extractedData.analysis) {
+        html += '<div id="analysis-tab" class="tab-content">';
+        const analysis = extractedData.analysis;
+        
+        // 1. NTIA Failed Components Section
+        if (analysis.ntiaFailedComponents.length > 0) {
+          // Calculate summary statistics
+          const criteriaCounts = {};
+          analysis.ntiaFailedComponents.forEach(function(comp) {
+            comp.missingCriteria.forEach(function(criteria) {
+              criteriaCounts[criteria] = (criteriaCounts[criteria] || 0) + 1;
+            });
+          });
+          
+          html += '<div class="info-card" style="border-left:4px solid #da1e28; background:#fff1f1;">';
+          html += '<div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:16px;">';
+          html += '<div><h3 style="color:#750e13; margin-bottom:8px;">❌ Components Not Meeting NTIA Criteria</h3>';
+          html += '<div style="font-size:0.875rem; color:#750e13; margin-bottom:12px;">Total: <strong>' + analysis.ntiaFailedComponents.length + ' components</strong></div></div>';
+          html += '</div>';
+          
+          html += '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:16px;">';
+          Object.keys(criteriaCounts).sort(function(a,b) { return criteriaCounts[b] - criteriaCounts[a]; }).forEach(function(criteria) {
+            html += '<div style="background:#ffffff; padding:12px; border-radius:4px; border:1px solid #ffd7d9; text-align:center;">';
+            html += '<div style="font-size:1.5rem; font-weight:600; color:#750e13;">' + criteriaCounts[criteria] + '</div>';
+            html += '<div style="font-size:0.75rem; color:#750e13; text-transform:uppercase; letter-spacing:0.32px; margin-top:4px;">' + escapeHtml(criteria) + '</div>';
+            html += '</div>';
+          });
+          html += '</div>';
+          
+          html += '<button class="btn" onclick="toggleCollapsible(this.nextElementSibling)" style="width:100%; background:#da1e28;">📋 Click for Details</button>';
+          html += '<div class="collapsible-content" style="margin-top:16px;">';
+          
+          // Group components by missing criteria type
+          var supplierMissing = [];
+          var identifierMissing = [];
+          var versionMissing = [];
+          
+          analysis.ntiaFailedComponents.forEach(function(comp) {
+            var criteria = comp.missingCriteria.join(', ').toLowerCase();
+            if (criteria.includes('supplier')) {
+              supplierMissing.push(comp);
+            }
+            if (criteria.includes('identifier')) {
+              identifierMissing.push(comp);
+            }
+            if (criteria.includes('version')) {
+              versionMissing.push(comp);
+            }
+          });
+          
+          // Missing Supplier Section
+          if (supplierMissing.length > 0) {
+            html += '<div style="margin-bottom:20px;">';
+            html += '<h4 style="color:#750e13; margin-bottom:12px;">🏢 Missing Supplier (' + supplierMissing.length + ' components)</h4>';
+            html += '<button class="btn" onclick="toggleCollapsible(this.nextElementSibling)" style="width:100%; background:#da1e28; font-size:0.9rem;">📋 Expand Missing Supplier Details</button>';
+            html += '<div class="collapsible-content" style="margin-top:12px;">';
+            html += '<table class="data-table"><thead><tr>';
+            html += '<th>Name</th><th>Version</th><th>Type</th><th>Missing Criteria</th></tr></thead><tbody>';
+            supplierMissing.forEach(function(comp) {
+              html += '<tr><td>' + escapeHtml(comp.name) + '</td>';
+              html += '<td>' + escapeHtml(comp.version) + '</td>';
+              html += '<td>' + escapeHtml(comp.type) + '</td>';
+              html += '<td>' + escapeHtml(comp.missingCriteria.join(', ')) + '</td></tr>';
+            });
+            html += '</tbody></table></div></div>';
+          }
+          
+          // Missing Identifier Section
+          if (identifierMissing.length > 0) {
+            html += '<div style="margin-bottom:20px;">';
+            html += '<h4 style="color:#750e13; margin-bottom:12px;">🔑 Missing Identifier (' + identifierMissing.length + ' components)</h4>';
+            html += '<button class="btn" onclick="toggleCollapsible(this.nextElementSibling)" style="width:100%; background:#da1e28; font-size:0.9rem;">📋 Expand Missing Identifier Details</button>';
+            html += '<div class="collapsible-content" style="margin-top:12px;">';
+            html += '<table class="data-table"><thead><tr>';
+            html += '<th>Name</th><th>Version</th><th>Type</th><th>Missing Criteria</th></tr></thead><tbody>';
+            identifierMissing.forEach(function(comp) {
+              html += '<tr><td>' + escapeHtml(comp.name) + '</td>';
+              html += '<td>' + escapeHtml(comp.version) + '</td>';
+              html += '<td>' + escapeHtml(comp.type) + '</td>';
+              html += '<td>' + escapeHtml(comp.missingCriteria.join(', ')) + '</td></tr>';
+            });
+            html += '</tbody></table></div></div>';
+          }
+          
+          // Missing/Unknown Version Section
+          if (versionMissing.length > 0) {
+            html += '<div style="margin-bottom:20px;">';
+            html += '<h4 style="color:#750e13; margin-bottom:12px;">📦 Missing/Unknown Version (' + versionMissing.length + ' components)</h4>';
+            html += '<button class="btn" onclick="toggleCollapsible(this.nextElementSibling)" style="width:100%; background:#da1e28; font-size:0.9rem;">📋 Expand Missing Version Details</button>';
+            html += '<div class="collapsible-content" style="margin-top:12px;">';
+            html += '<table class="data-table"><thead><tr>';
+            html += '<th>Name</th><th>Version</th><th>Type</th><th>Missing Criteria</th></tr></thead><tbody>';
+            versionMissing.forEach(function(comp) {
+              html += '<tr><td>' + escapeHtml(comp.name) + '</td>';
+              html += '<td>' + escapeHtml(comp.version) + '</td>';
+              html += '<td>' + escapeHtml(comp.type) + '</td>';
+              html += '<td>' + escapeHtml(comp.missingCriteria.join(', ')) + '</td></tr>';
+            });
+            html += '</tbody></table></div></div>';
+          }
+          
+          html += '</div></div>';
+        }
+        
+        // 2. Dependency Validation Section
+        if (extractedData.dependencyValidation) {
+          const dep = extractedData.dependencyValidation;
+          html += '<div class="info-card" style="border-left:4px solid ' + (dep.passed ? '#24a148' : '#da1e28') + '; margin-top:16px;">';
+          html += '<h3 style="color:' + (dep.passed ? '#0e6027' : '#750e13') + ';">' + (dep.passed ? '✅' : '❌') + ' Dependency Validation</h3>';
+          html += '<div style="margin:12px 0; padding:12px; background:#f4f4f4; border-radius:6px;">';
+          html += '<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;">';
+          html += '<div><strong>Total Dependencies:</strong> ' + dep.stats.totalDependencies + '</div>';
+          html += '<div><strong>Duplicate Refs:</strong> <span style="color:#da1e28;">' + dep.stats.duplicateRefs + '</span></div>';
+          html += '<div><strong>Duplicate dependsOn:</strong> <span style="color:#da1e28;">' + dep.stats.duplicateDependsOn + '</span></div>';
+          html += '</div>';
+          html += '<div style="font-size:0.85em; color:#525252; margin-top:8px; font-style:italic;">✅ ' + escapeHtml(dep.stats.note) + '</div>';
+          html += '</div>';
+          
+          if (!dep.passed && dep.errors && dep.errors.length > 0) {
+            html += '<div style="background:#fff9e6; border:2px solid #f1c21b; border-radius:8px; padding:16px; margin-top:12px;">';
+            html += '<h4 style="color:#8e6a00; margin-bottom:12px;">🔧 Automatic Dependency Fix</h4>';
+            html += '<p style="margin-bottom:12px; color:#856404;">The fix will automatically:</p>';
+            html += '<ul style="margin-left:20px; margin-bottom:12px; color:#856404;">';
+            html += '<li>Merge duplicate dependency entries with the same ref</li>';
+            html += '<li>Deduplicate values in dependsOn arrays</li>';
+            html += '<li>Ensure each ref appears only once with unique dependsOn values</li>';
+            html += '</ul>';
+            html += '<button class="btn" onclick="applyDependencyFixes()" style="margin-right:10px;">✨ Apply Fixes & Download</button>';
+            html += '<button class="btn" onclick="previewDependencyFixes()" style="background:#6c757d;">👁️ Preview Changes</button>';
+            html += '</div>';
+          }
+          html += '</div>';
+        }
+        
+        // 3. Generic PURL Components Section
+        if (analysis.genericPurlComponents.length > 0) {
+          html += '<div class="info-card" style="border-left:4px solid #f1c21b; background:#fef6e6; margin-top:16px;">';
+          html += '<div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">';
+          html += '<div><h3 style="color:#8e6a00; margin-bottom:8px;">🔶 Components with Generic PURL</h3>';
+          html += '<div style="font-size:0.875rem; color:#8e6a00; margin-bottom:12px;">Total: <strong>' + analysis.genericPurlComponents.length + ' components</strong></div></div>';
+          html += '</div>';
+          
+          html += '<div style="background:#ffffff; padding:14px; border-radius:4px; border:1px solid #f1c21b; margin-bottom:16px;">';
+          html += '<div style="font-size:0.875rem; color:#8e6a00; line-height:1.5;">';
+          html += '<strong>⚠️ Why This Matters:</strong> Package URLs that use the "generic" ecosystem lack the specific package manager context (like npm, PyPI, Maven, etc.) that vulnerability databases rely on for matching. ';
+          html += 'Security scanners often cannot confidently map these components to known advisories, potentially leaving vulnerabilities undetected.';
+          html += '</div></div>';
+          
+          html += '<button class="btn" onclick="toggleCollapsible(this.nextElementSibling)" style="width:100%; background:#f1c21b; color:#8e6a00;">📋 Click for Details</button>';
+          html += '<div class="collapsible-content" style="margin-top:16px;">';
+          html += '<table class="data-table"><thead><tr>';
+          html += '<th>Name</th><th>Version</th><th>PURL</th></tr></thead><tbody>';
+          analysis.genericPurlComponents.forEach(function(comp) {
+            html += '<tr><td>' + escapeHtml(comp.name) + '</td>';
+            html += '<td>' + escapeHtml(comp.version) + '</td>';
+            html += '<td>' + escapeHtml(comp.purl) + '</td></tr>';
+          });
+          html += '</tbody></table></div></div>';
+        }
+        
+        // 4. GitHub PURL without CPE Section
+        if (extractedData.githubPurlValidation) {
+          const ghValidation = extractedData.githubPurlValidation;
+          html += '<div class="info-card" style="border-left:4px solid ' + (ghValidation.passed ? '#24a148' : '#f1c21b') + '; margin-top:16px;">';
+          html += '<h3 style="color:' + (ghValidation.passed ? '#0e6027' : '#8e6a00') + ';">' + (ghValidation.passed ? '✅' : '⚠️') + ' Components with only a GitHub PURL and no CPE</h3>';
+          html += '<div style="margin:12px 0; padding:12px; background:#f4f4f4; border-radius:6px;">';
+          html += '<div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px;">';
+          html += '<div><strong>Total Components:</strong> ' + ghValidation.stats.totalComponents + '</div>';
+          html += '<div><strong>Affected Components:</strong> <span style="color:' + (ghValidation.stats.affectedComponents > 0 ? '#f1c21b' : '#24a148') + ';">' + ghValidation.stats.affectedComponents + '</span></div>';
+          html += '</div>';
+          html += '<div style="font-size:0.85em; color:#525252; margin-top:8px; font-style:italic;">ℹ️ ' + escapeHtml(ghValidation.stats.note) + '</div>';
+          html += '</div>';
+          
+          if (!ghValidation.passed && ghValidation.componentsWithIssue && ghValidation.componentsWithIssue.length > 0) {
+            html += '<div style="background:#fff9e6; border:2px solid #f1c21b; border-radius:8px; padding:16px; margin-top:12px;">';
+            html += '<h4 style="color:#8e6a00; margin-bottom:12px;">⚠️ Components at Risk for CVE Mapping Issues</h4>';
+            html += '<p style="margin-bottom:12px; color:#856404;"><strong>Why This Matters:</strong> Components with only GitHub PURLs (pkg:github/*) lack the CPE (Common Platform Enumeration) identifier that vulnerability databases use for CVE matching. This can prevent security scanners from detecting known vulnerabilities in these components.</p>';
+            html += '<p style="margin-bottom:16px; color:#856404;"><strong>Recommendation:</strong> Add CPE identifiers to these components or convert GitHub PURLs to package manager-specific PURLs (e.g., pkg:npm/, pkg:pypi/, pkg:maven/) when possible.</p>';
+            
+            html += '<div class="collapsible-section">';
+            html += '<div class="collapsible-header" onclick="toggleCollapsible(this)">';
+            html += '<h4>📋 Affected Components (' + ghValidation.componentsWithIssue.length + ')</h4>';
+            html += '<span class="toggle-icon">▼</span>';
+            html += '</div>';
+            html += '<div class="collapsible-content">';
+            html += '<div class="table-wrapper"><table class="data-table"><thead><tr>';
+            html += '<th>Name</th><th>Version</th><th>Type</th><th>GitHub PURL</th>';
+            html += '</tr></thead><tbody>';
+            
+            ghValidation.componentsWithIssue.forEach(function(comp) {
+              html += '<tr>';
+              html += '<td>' + escapeHtml(comp.name) + '</td>';
+              html += '<td>' + escapeHtml(comp.version) + '</td>';
+              html += '<td>' + escapeHtml(comp.type) + '</td>';
+              html += '<td style="font-family:monospace; font-size:0.85em;">' + escapeHtml(comp.purl) + '</td>';
+              html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            html += '</div></div>';
+            html += '</div>';
+          }
+          html += '</div>';
+        }
+        
+        // 5. Library & Framework Components Section
+        if (analysis.libraryFrameworkComponents.length > 0) {
+          html += '<div class="info-card" style="border-left:4px solid #0f62fe; background:#e5f6ff;">';
+          html += '<div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">';
+          html += '<div><h3 style="color:#0043ce; margin-bottom:8px;">📚 Library & Framework Components</h3>';
+          html += '<div style="font-size:0.875rem; color:#0043ce; margin-bottom:12px;">Total: <strong>' + analysis.libraryFrameworkComponents.length + ' components</strong></div></div>';
+          html += '</div>';
+          
+          html += '<div style="background:#ffffff; padding:14px; border-radius:4px; border:1px solid #0f62fe; margin-bottom:16px;">';
+          html += '<div style="font-size:0.875rem; color:#0043ce; line-height:1.5;">';
+          html += '<strong>ℹ️ About This Section:</strong> This section lists all components identified as libraries or frameworks in your SBOM. ';
+          html += 'These are the reusable code dependencies that your application relies on. Tracking these components is essential for security vulnerability management and license compliance.';
+          html += '</div></div>';
+          
+          html += '<button class="btn" onclick="toggleCollapsible(this.nextElementSibling)" style="width:100%; background:#0f62fe; color:#ffffff;">📋 Click for Details</button>';
+          html += '<div class="collapsible-content" style="margin-top:16px;">';
+          html += '<table class="data-table"><thead><tr>';
+          html += '<th>Name</th><th>Version</th><th>Type</th><th>PURL</th></tr></thead><tbody>';
+          analysis.libraryFrameworkComponents.forEach(function(comp) {
+            html += '<tr><td>' + escapeHtml(comp.name) + '</td>';
+            html += '<td>' + escapeHtml(comp.version) + '</td>';
+            html += '<td>' + escapeHtml(comp.type) + '</td>';
+            html += '<td>' + escapeHtml(comp.purl) + '</td></tr>';
+          });
+          html += '</tbody></table></div></div>';
+        }
+        html += '</div>';
+      }
+      
+      html += '<div id="export-tab" class="tab-content">';
+      html += '<div class="info-card"><h3>💾 Export Options</h3>';
+      html += '<p style="margin-bottom:20px;">Download your SBOM analysis data in various formats:</p>';
+      html += '<button class="btn btn-export" onclick="exportToCSV()">📄 Download CSV</button>';
+      html += '<button class="btn btn-export" onclick="exportToExcel()">📊 Download Excel</button>';
+      html += '</div></div>';
+
+      results.innerHTML = html;
+      results.classList.add('show');
+      window.exportData = { fileName: fileName, formatInfo: formatInfo, toolName: toolName, toolVersion: toolVersion, extractedData: extractedData };
+    }
+
+    function toggleCollapsible(header) {
+      const content = header.nextElementSibling || header;
+      const icon = header.querySelector('.toggle-icon');
+      content.classList.toggle('show');
+      if (icon) icon.classList.toggle('rotated');
+    }
+
+    function toggleDuplicateView(view, button) {
+      const data = window.exportData.extractedData;
+      const tableBody = document.getElementById('componentTableBody');
+      document.querySelectorAll('.toggle-duplicates').forEach(function(btn) { btn.classList.remove('active'); });
+      button.classList.add('active');
+      tableBody.innerHTML = '';
+      const dataToShow = view === 'unique' ? data.unique : data.all;
+      let html = '';
+      dataToShow.forEach(function(comp) {
+        const dupBadge = view === 'unique' && comp.duplicateCount > 1 ? '<span class="duplicate-badge">' + comp.duplicateCount + 'x</span>' : '';
+        if (data.type === 'CycloneDX') {
+          html += '<tr><td>' + escapeHtml(comp['Component Name']) + dupBadge + '</td>';
+          html += '<td>' + escapeHtml(comp['Version']) + '</td>';
+          html += '<td>' + escapeHtml(comp['Type']) + '</td>';
+          html += '<td>' + escapeHtml(comp['PURL']) + '</td>';
+          html += '<td>' + escapeHtml(comp['Supplier']) + '</td>';
+          html += '<td>' + escapeHtml(comp['License']) + '</td></tr>';
+        } else {
+          html += '<tr><td>' + escapeHtml(comp['Package Name']) + dupBadge + '</td>';
+          html += '<td>' + escapeHtml(comp['Version']) + '</td>';
+          html += '<td>' + escapeHtml(comp['SPDXID']) + '</td>';
+          html += '<td>' + escapeHtml(comp['PURL']) + '</td>';
+          html += '<td>' + escapeHtml(comp['Supplier']) + '</td></tr>';
+        }
+      });
+      tableBody.innerHTML = html;
+    }
+
+    function exportToCSV() {
+      if (!window.exportData) return;
+      const data = window.exportData.extractedData;
+      let csv = 'SBOM Quality Insights Export\n\n';
+      csv += 'File,' + window.exportData.fileName + '\n';
+      csv += 'Format,' + window.exportData.formatInfo.format + '\n';
+      csv += 'Unique Components,' + data.uniqueCount + '\n';
+      csv += 'Total Components,' + data.totalCount + '\n';
+      
+      if (data.analysis) {
+        csv += '\nAnalysis Summary\n';
+        csv += 'Components Not Meeting NTIA Criteria,' + data.analysis.ntiaFailedComponents.length + '\n';
+        csv += 'Components with Generic PURL,' + data.analysis.genericPurlComponents.length + '\n';
+        csv += 'Components with GitHub PURL,' + data.analysis.githubPurlComponents.length + '\n';
+        csv += 'Library & Framework Components,' + data.analysis.libraryFrameworkComponents.length + '\n';
+      }
+      
+      csv += '\n\n=== ALL COMPONENTS ===\n';
+      if (data.type === 'CycloneDX') {
+        csv += 'Name,Version,Type,PURL,Supplier,License,Duplicate Count\n';
+        data.unique.forEach(function(comp) {
+          csv += '"' + comp['Component Name'] + '","' + comp['Version'] + '","' + comp['Type'] + '","' + comp['PURL'] + '","' + comp['Supplier'] + '","' + comp['License'] + '",' + (comp.duplicateCount || 1) + '\n';
+        });
+        
+        // Add Analysis sections
+        if (data.analysis) {
+          if (data.analysis.ntiaFailedComponents.length > 0) {
+            csv += '\n\n=== COMPONENTS NOT MEETING NTIA CRITERIA ===\n';
+            csv += 'Name,Version,PURL,Missing Criteria\n';
+            data.analysis.ntiaFailedComponents.forEach(function(comp) {
+              csv += '"' + comp.name + '","' + comp.version + '","' + comp.purl + '","' + comp.missingCriteria.join('; ') + '"\n';
+            });
+          }
+          
+          if (data.analysis.genericPurlComponents.length > 0) {
+            csv += '\n\n=== COMPONENTS WITH GENERIC PURL ===\n';
+            csv += 'Name,Version,PURL\n';
+            data.analysis.genericPurlComponents.forEach(function(comp) {
+              csv += '"' + comp.name + '","' + comp.version + '","' + comp.purl + '"\n';
+            });
+          }
+          
+          if (data.analysis.githubPurlComponents.length > 0) {
+            csv += '\n\n=== COMPONENTS WITH GITHUB PURL ===\n';
+            csv += 'Name,Version,PURL\n';
+            data.analysis.githubPurlComponents.forEach(function(comp) {
+              csv += '"' + comp.name + '","' + comp.version + '","' + comp.purl + '"\n';
+            });
+          }
+          
+          if (data.analysis.libraryFrameworkComponents.length > 0) {
+            csv += '\n\n=== LIBRARY & FRAMEWORK COMPONENTS ===\n';
+            csv += 'Name,Version,Type,PURL\n';
+            data.analysis.libraryFrameworkComponents.forEach(function(comp) {
+              csv += '"' + comp.name + '","' + comp.version + '","' + comp.type + '","' + comp.purl + '"\n';
+            });
+          }
+        }
+      } else {
+        csv += 'Name,Version,SPDXID,PURL,Supplier,Duplicate Count\n';
+        data.unique.forEach(function(pkg) {
+          csv += '"' + pkg['Package Name'] + '","' + pkg['Version'] + '","' + pkg['SPDXID'] + '","' + pkg['PURL'] + '","' + pkg['Supplier'] + '",' + (pkg.duplicateCount || 1) + '\n';
+        });
+      }
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = window.exportData.fileName.replace('.json', '_analysis.csv');
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportToExcel() {
+      if (!window.exportData) return;
+      const wb = XLSX.utils.book_new();
+      const data = window.exportData.extractedData;
+      
+      const summaryData = [
+        ['SBOM Quality Insights Analysis'],
+        [],
+        ['File Name', window.exportData.fileName],
+        ['Format', window.exportData.formatInfo.format],
+        ['Version', window.exportData.formatInfo.version],
+        ['Tool', window.exportData.toolName + ' v' + window.exportData.toolVersion],
+        ['Analysis Date', new Date().toLocaleString()],
+        [],
+        ['Unique Components', data.uniqueCount],
+        ['Total Components', data.totalCount],
+        ['Duplicates', data.totalCount - data.uniqueCount]
+      ];
+      
+      if (data.analysis) {
+        summaryData.push([]);
+        summaryData.push(['Analysis Summary']);
+        summaryData.push(['Components Not Meeting NTIA Criteria', data.analysis.ntiaFailedComponents.length]);
+        summaryData.push(['Components with Generic PURL', data.analysis.genericPurlComponents.length]);
+        summaryData.push(['Components with GitHub PURL', data.analysis.githubPurlComponents.length]);
+        summaryData.push(['Library & Framework Components', data.analysis.libraryFrameworkComponents.length]);
+      }
+      
+      const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+      
+      if (data.type === 'CycloneDX') {
+        const compData = [['Name', 'Version', 'Type', 'PURL', 'Supplier', 'License', 'Dup Count']];
+        data.unique.forEach(function(comp) {
+          compData.push([comp['Component Name'], comp['Version'], comp['Type'], comp['PURL'], comp['Supplier'], comp['License'], comp.duplicateCount || 1]);
+        });
+        const compWs = XLSX.utils.aoa_to_sheet(compData);
+        XLSX.utils.book_append_sheet(wb, compWs, 'All Components');
+        
+        // Add Analysis sheets if available
+        if (data.analysis) {
+          // NTIA Failed Components
+          if (data.analysis.ntiaFailedComponents.length > 0) {
+            const ntiaData = [['Name', 'Version', 'PURL', 'Missing Criteria']];
+            data.analysis.ntiaFailedComponents.forEach(function(comp) {
+              ntiaData.push([comp.name, comp.version, comp.purl, comp.missingCriteria.join(', ')]);
+            });
+            const ntiaWs = XLSX.utils.aoa_to_sheet(ntiaData);
+            XLSX.utils.book_append_sheet(wb, ntiaWs, 'NTIA Failed');
+          }
+          
+          // Generic PURL Components
+          if (data.analysis.genericPurlComponents.length > 0) {
+            const genericData = [['Name', 'Version', 'PURL']];
+            data.analysis.genericPurlComponents.forEach(function(comp) {
+              genericData.push([comp.name, comp.version, comp.purl]);
+            });
+            const genericWs = XLSX.utils.aoa_to_sheet(genericData);
+            XLSX.utils.book_append_sheet(wb, genericWs, 'Generic PURL');
+          }
+          
+          // GitHub PURL Components
+          if (data.analysis.githubPurlComponents.length > 0) {
+            const githubData = [['Name', 'Version', 'PURL']];
+            data.analysis.githubPurlComponents.forEach(function(comp) {
+              githubData.push([comp.name, comp.version, comp.purl]);
+            });
+            const githubWs = XLSX.utils.aoa_to_sheet(githubData);
+            XLSX.utils.book_append_sheet(wb, githubWs, 'GitHub PURL');
+          }
+          
+          // Library & Framework Components
+          if (data.analysis.libraryFrameworkComponents.length > 0) {
+            const libData = [['Name', 'Version', 'Type', 'PURL']];
+            data.analysis.libraryFrameworkComponents.forEach(function(comp) {
+              libData.push([comp.name, comp.version, comp.type, comp.purl]);
+            });
+            const libWs = XLSX.utils.aoa_to_sheet(libData);
+            XLSX.utils.book_append_sheet(wb, libWs, 'Libraries & Frameworks');
+          }
+        }
+      } else {
+        const pkgData = [['Name', 'Version', 'SPDXID', 'PURL', 'Supplier', 'Dup Count']];
+        data.unique.forEach(function(pkg) {
+          pkgData.push([pkg['Package Name'], pkg['Version'], pkg['SPDXID'], pkg['PURL'], pkg['Supplier'], pkg.duplicateCount || 1]);
+        });
+        const pkgWs = XLSX.utils.aoa_to_sheet(pkgData);
+        XLSX.utils.book_append_sheet(wb, pkgWs, 'All Packages');
+      }
+      
+      XLSX.writeFile(wb, window.exportData.fileName.replace('.json', '_analysis.xlsx'));
+    }
+
+    // ===== FIX AND PREVIEW FUNCTIONS =====
+    
+    function applyDependencyFixes() {
+      if (!window.exportData || !window.exportData.extractedData || !currentSBOMData) {
+        alert('No SBOM data available');
+        return;
+      }
+
+      const { sbom: fixedSBOM, fixCount, fixLog } = fixDependencies(currentSBOMData);
+
+      const fileName = window.exportData.fileName.replace('.json', '_dependency_fixed.json');
+      const blob = new Blob([JSON.stringify(fixedSBOM, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      let message = `✅ Dependency Fixes Applied!\n\n`;
+      if (fixCount > 0) {
+        fixLog.forEach(log => {
+          message += `${log.action}\n`;
+          if (log.before) message += `  Before: ${log.before}\n`;
+          if (log.after) message += `  After: ${log.after}\n`;
+          if (log.affectedRefs) message += `  Affected refs: ${log.affectedRefs}\n`;
+        });
+      } else {
+        message += 'No fixes needed - dependencies are already valid.\n';
+      }
+      message += `\nDownloading: ${fileName}`;
+      
+      alert(message);
+    }
+
+    function previewDependencyFixes() {
+      if (!window.exportData || !window.exportData.extractedData || !currentSBOMData) {
+        alert('No SBOM data available');
+        return;
+      }
+
+      const { sbom: fixedSBOM, fixCount, fixLog } = fixDependencies(currentSBOMData);
+      const fixedValidation = validateDependencies(fixedSBOM);
+
+      let previewHTML = '<div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; display:flex; align-items:center; justify-content:center;" onclick="this.remove()">';
+      previewHTML += '<div style="background:white; border-radius:12px; padding:30px; max-width:800px; width:90%; max-height:80vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">';
+      previewHTML += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">';
+      previewHTML += '<h2 style="color:#0f62fe; margin:0;">🔧 Preview Dependency Fixes</h2>';
+      previewHTML += '<span style="font-size:2em; cursor:pointer; color:#999;" onclick="this.parentElement.parentElement.parentElement.remove()">×</span>';
+      previewHTML += '</div>';
+      previewHTML += '<div style="background:#f4f4f4; border-radius:8px; padding:20px; margin-bottom:20px;">';
+      previewHTML += '<div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:15px;">';
+      previewHTML += '<div><strong>Fixes Applied:</strong> <span style="color:#24a148;">' + fixCount + '</span></div>';
+      previewHTML += '<div><strong>Remaining Issues:</strong> <span style="color:' + (fixedValidation.issues.length === 0 ? '#24a148' : '#da1e28') + '">' + fixedValidation.issues.length + '</span></div>';
+      previewHTML += '</div></div>';
+      
+      if (fixedValidation.issues.length === 0) {
+        previewHTML += '<div style="background:#defbe6; border:2px solid #24a148; border-radius:8px; padding:20px; text-align:center; margin-bottom:20px;">';
+        previewHTML += '<div style="font-size:3em; margin-bottom:10px;">✅</div>';
+        previewHTML += '<h3 style="color:#0e6027; margin-bottom:10px;">All Dependency Issues Fixed!</h3>';
+        previewHTML += '<p style="color:#525252;">Your SBOM dependencies are now unique and valid.</p>';
+        previewHTML += '</div>';
+      }
+      
+      if (fixLog.length > 0) {
+        previewHTML += '<h3 style="margin-bottom:15px; color:#0f62fe;">Changes Made:</h3>';
+        fixLog.forEach((log, index) => {
+          previewHTML += '<div style="background:#f4f4f4; border-radius:6px; padding:15px; margin-bottom:15px;">';
+          previewHTML += '<div style="font-weight:600; color:#0f62fe; margin-bottom:10px;">' + escapeHtml(log.action) + '</div>';
+          if (log.before) {
+            previewHTML += '<div style="font-size:0.9em; color:#525252; margin-bottom:5px;"><strong>Before:</strong> ' + escapeHtml(log.before) + '</div>';
+          }
+          if (log.after) {
+            previewHTML += '<div style="font-size:0.9em; color:#525252;"><strong>After:</strong> ' + escapeHtml(log.after) + '</div>';
+          }
+          if (log.affectedRefs) {
+            previewHTML += '<div style="font-size:0.9em; color:#525252;"><strong>Affected refs:</strong> ' + log.affectedRefs + '</div>';
+          }
+          previewHTML += '</div>';
+        });
+      }
+      
+      previewHTML += '<div style="text-align:center; margin-top:20px;">';
+      previewHTML += '<button class="btn" onclick="applyDependencyFixes(); this.parentElement.parentElement.parentElement.remove();" style="margin-right:10px;">Apply and Download</button>';
+      previewHTML += '<button class="btn" onclick="this.parentElement.parentElement.parentElement.remove();" style="background:#8d8d8d;">Close Preview</button>';
+      previewHTML += '</div></div></div>';
+      
+      document.body.insertAdjacentHTML('beforeend', previewHTML);
+    }
+  </script>
+</body>
+</html>

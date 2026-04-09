@@ -1,0 +1,98 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-03-20T14:57:00Z",
+    "component": {
+      "type": "application",
+      "name": "acme-ecommerce-platform",
+      "version": "2.3.0",
+      "bom-ref": "acme-ecommerce-platform@2.3.0"
+    }
+  },
+  "components": [
+    {
+      "type": "service",
+      "name": "user-service",
+      "version": "1.4.0",
+      "bom-ref": "user-service@1.4.0"
+    },
+    {
+      "type": "service",
+      "name": "order-service",
+      "version": "2.1.0",
+      "bom-ref": "order-service@2.1.0"
+    },
+    {
+      "type": "service",
+      "name": "payment-service",
+      "version": "3.0.1",
+      "bom-ref": "payment-service@3.0.1"
+    },
+    {
+      "type": "library",
+      "name": "spring-boot-starter-web",
+      "version": "3.2.2",
+      "purl": "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.2",
+      "bom-ref": "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.2"
+    },
+    {
+      "type": "library",
+      "name": "hibernate-core",
+      "version": "6.4.1.Final",
+      "purl": "pkg:maven/org.hibernate.orm/hibernate-core@6.4.1.Final",
+      "bom-ref": "pkg:maven/org.hibernate.orm/hibernate-core@6.4.1.Final"
+    },
+    {
+      "type": "library",
+      "name": "stripe-java",
+      "version": "24.1.0",
+      "purl": "pkg:maven/com.stripe/stripe-java@24.1.0",
+      "bom-ref": "pkg:maven/com.stripe/stripe-java@24.1.0"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "acme-ecommerce-platform@2.3.0",
+      "dependsOn": [
+        "user-service@1.4.0",
+        "order-service@2.1.0",
+        "payment-service@3.0.1"
+      ]
+    },
+    {
+      "ref": "user-service@1.4.0",
+      "dependsOn": [
+        "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.2",
+        "pkg:maven/org.hibernate.orm/hibernate-core@6.4.1.Final"
+      ]
+    },
+    {
+      "ref": "order-service@2.1.0",
+      "dependsOn": [
+        "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.2",
+        "pkg:maven/org.hibernate.orm/hibernate-core@6.4.1.Final"
+      ]
+    },
+    {
+      "ref": "payment-service@3.0.1",
+      "dependsOn": [
+        "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.2",
+        "pkg:maven/com.stripe/stripe-java@24.1.0"
+      ]
+    },
+    {
+      "ref": "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:maven/org.hibernate.orm/hibernate-core@6.4.1.Final",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:maven/com.stripe/stripe-java@24.1.0",
+      "dependsOn": []
+    }
+  ]
+}

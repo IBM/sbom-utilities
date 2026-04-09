@@ -1,0 +1,4419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SBOM License Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── Carbon Design System – Gray 100 Theme ─────────────────────────────── */
+  :root {
+    /* Carbon Gray 100 theme backgrounds */
+    --cds-background:          #161616;
+    --cds-layer-01:            #262626;
+    --cds-layer-02:            #393939;
+    --cds-layer-03:            #525252;
+    --cds-layer-hover:         #333333;
+    --cds-layer-selected:      #525252;
+
+    /* Carbon borders */
+    --cds-border-subtle:       #393939;
+    --cds-border-strong:       #6f6f6f;
+    --cds-border-interactive:  #4589ff;
+
+    /* Carbon text */
+    --cds-text-primary:        #f4f4f4;
+    --cds-text-secondary:      #c6c6c6;
+    --cds-text-placeholder:    #6f6f6f;
+    --cds-text-disabled:       #525252;
+    --cds-text-on-color:       #ffffff;
+    --cds-text-inverse:        #161616;
+
+    /* Carbon interactive */
+    --cds-interactive:         #4589ff;
+    --cds-focus:               #ffffff;
+    --cds-link-primary:        #78a9ff;
+    --cds-link-visited:        #be95ff;
+
+    /* Carbon button */
+    --cds-button-primary:      #0f62fe;
+    --cds-button-primary-hover:#0050e6;
+    --cds-button-secondary:    #393939;
+    --cds-button-secondary-hover:#474747;
+    --cds-button-tertiary:     transparent;
+    --cds-button-danger:       #da1e28;
+
+    /* Carbon status colors */
+    --cds-support-error:       #ff8389;
+    --cds-support-warning:     #f1c21b;
+    --cds-support-success:     #42be65;
+    --cds-support-info:        #4589ff;
+    --cds-support-caution:     #ff832b;
+    --cds-support-undefined:   #8d8d8d;
+    --cds-support-purple:      #be95ff;
+
+    /* Status background fills */
+    --cds-notification-error-bg:    #3a1a1c;
+    --cds-notification-warning-bg:  #302400;
+    --cds-notification-success-bg:  #071908;
+    --cds-notification-info-bg:     #061727;
+    --cds-notification-purple-bg:   #21173a;
+
+    /* Carbon icon */
+    --cds-icon-primary:        #f4f4f4;
+    --cds-icon-secondary:      #c6c6c6;
+    --cds-icon-inverse:        #161616;
+    --cds-icon-on-color:       #ffffff;
+
+    /* Carbon overlay */
+    --cds-overlay:             rgba(0,0,0,0.65);
+
+    /* Carbon spacing (8px base grid) */
+    --cds-spacing-01: 2px;
+    --cds-spacing-02: 4px;
+    --cds-spacing-03: 8px;
+    --cds-spacing-04: 12px;
+    --cds-spacing-05: 16px;
+    --cds-spacing-06: 24px;
+    --cds-spacing-07: 32px;
+    --cds-spacing-08: 40px;
+    --cds-spacing-09: 48px;
+    --cds-spacing-10: 64px;
+
+    /* Type scale (IBM Plex) */
+    --cds-label-01: 400 12px/16px 'IBM Plex Sans', sans-serif;
+    --cds-body-compact-01: 400 14px/18px 'IBM Plex Sans', sans-serif;
+    --cds-body-01: 400 14px/20px 'IBM Plex Sans', sans-serif;
+    --cds-heading-compact-01: 600 14px/18px 'IBM Plex Sans', sans-serif;
+    --cds-heading-03: 400 20px/28px 'IBM Plex Sans', sans-serif;
+    --cds-code-01: 400 12px/16px 'IBM Plex Mono', monospace;
+    --cds-code-02: 400 14px/20px 'IBM Plex Mono', monospace;
+
+    /* Legacy aliases used in JS-generated HTML */
+    --bg:         var(--cds-background);
+    --surface:    var(--cds-layer-01);
+    --surface2:   var(--cds-layer-02);
+    --border:     var(--cds-border-subtle);
+    --accent:     var(--cds-button-primary);
+    --accent2:    var(--cds-link-primary);
+    --red:        var(--cds-support-error);
+    --orange:     var(--cds-support-caution);
+    --yellow:     var(--cds-support-warning);
+    --green:      var(--cds-support-success);
+    --blue:       var(--cds-support-info);
+    --muted:      var(--cds-text-placeholder);
+    --text:       var(--cds-text-secondary);
+    --text-bright: var(--cds-text-primary);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { font-size: 16px; }
+
+  body {
+    background: var(--cds-background);
+    color: var(--cds-text-secondary);
+    font: var(--cds-body-01);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Carbon Shell Header ──────────────────────────────────────────────────── */
+  .header {
+    background: #000000;
+    border-bottom: 1px solid var(--cds-border-subtle);
+    height: 48px;
+    padding: 0 var(--cds-spacing-05);
+    display: flex;
+    align-items: center;
+    gap: var(--cds-spacing-05);
+    position: sticky;
+    top: 0;
+    z-index: 8000;
+    flex-shrink: 0;
+  }
+
+  /* Carbon header name / product */
+  .logo-mark {
+    width: 32px; height: 32px;
+    background: var(--cds-button-primary);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    /* Carbon uses square elements, no clip-path */
+  }
+  .logo-mark span {
+    font: 600 11px/1 'IBM Plex Mono', monospace;
+    color: #ffffff;
+    letter-spacing: 0.02em;
+  }
+
+  .header-title {
+    font: 600 14px/20px 'IBM Plex Sans', sans-serif;
+    color: var(--cds-text-primary);
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+  .header-sub {
+    font: var(--cds-label-01);
+    color: var(--cds-text-secondary);
+    margin-top: 1px;
+  }
+
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--cds-spacing-05);
+  }
+
+  .version-label {
+    font: var(--cds-label-01);
+    color: var(--cds-support-success);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* Carbon "online" indicator */
+  .status-dot {
+    width: 8px; height: 8px;
+    background: var(--cds-support-success);
+    border-radius: 50%;
+    animation: cds-blink 3s ease-in-out infinite;
+  }
+  @keyframes cds-blink {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+  .status-label {
+    font: var(--cds-label-01);
+    color: var(--cds-support-success);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ── Carbon UI Shell Navigation ────────────────────────────────────────── */
+  .header-nav {
+    display: flex;
+    align-items: stretch;
+    height: 48px;
+    gap: 0;
+    margin-left: var(--cds-spacing-06);
+  }
+  .nav-tab {
+    height: 48px;
+    padding: 0 var(--cds-spacing-05);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--cds-text-secondary);
+    font: var(--cds-body-compact-01);
+    cursor: pointer;
+    transition: background 70ms, color 70ms;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: var(--cds-spacing-02);
+    position: relative;
+  }
+  .nav-tab:hover {
+    background: var(--cds-layer-hover);
+    color: var(--cds-text-primary);
+  }
+  .nav-tab.active {
+    color: var(--cds-text-primary);
+    border-bottom-color: var(--cds-border-interactive);
+    background: var(--cds-layer-01);
+  }
+  .nav-badge {
+    background: var(--cds-button-primary);
+    color: #fff;
+    font: 600 10px/1 'IBM Plex Mono', monospace;
+    padding: 2px 5px;
+    border-radius: 8px;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  /* ── Carbon Page / Content ────────────────────────────────────────────── */
+  main {
+    max-width: 1312px;
+    margin: 0 auto;
+    padding: var(--cds-spacing-07) var(--cds-spacing-07);
+  }
+
+  /* ── Carbon File Uploader ─────────────────────────────────────────────── */
+  .drop-zone {
+    border: 1px dashed var(--cds-border-strong);
+    background: var(--cds-layer-01);
+    padding: var(--cds-spacing-09) var(--cds-spacing-07);
+    text-align: center;
+    cursor: pointer;
+    transition: background 70ms, border-color 70ms;
+    position: relative;
+    overflow: hidden;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    background: var(--cds-layer-hover);
+    border-color: var(--cds-border-interactive);
+  }
+  .drop-icon {
+    font-size: 32px;
+    color: var(--cds-icon-secondary);
+    display: block;
+    margin-bottom: var(--cds-spacing-04);
+    transition: color 100ms;
+  }
+  .drop-zone:hover .drop-icon, .drop-zone.drag-over .drop-icon {
+    color: var(--cds-interactive);
+  }
+  .drop-title {
+    font: var(--cds-heading-compact-01);
+    color: var(--cds-text-primary);
+    margin-bottom: var(--cds-spacing-02);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .drop-sub {
+    font: var(--cds-label-01);
+    color: var(--cds-text-secondary);
+    margin-bottom: var(--cds-spacing-05);
+  }
+  .drop-formats {
+    display: flex; gap: var(--cds-spacing-02);
+    justify-content: center; flex-wrap: wrap;
+    margin-bottom: var(--cds-spacing-06);
+  }
+
+  /* Carbon Tag */
+  .format-tag {
+    font: var(--cds-label-01);
+    font-size: 11px;
+    padding: var(--cds-spacing-01) var(--cds-spacing-03);
+    background: var(--cds-layer-02);
+    color: var(--cds-text-secondary);
+    border: 1px solid var(--cds-border-subtle);
+    border-radius: 0;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* ── Carbon Buttons ────────────────────────────────────────────────────── */
+  .btn-primary {
+    font: var(--cds-body-compact-01);
+    padding: 0 var(--cds-spacing-07) 0 var(--cds-spacing-05);
+    height: 48px;
+    background: var(--cds-button-primary);
+    color: var(--cds-text-on-color);
+    border: none;
+    cursor: pointer;
+    transition: background 70ms;
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    outline: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .btn-primary:hover { background: var(--cds-button-primary-hover); }
+  .btn-primary:focus {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
+
+  .btn-secondary {
+    font: var(--cds-body-compact-01);
+    padding: 0 var(--cds-spacing-07) 0 var(--cds-spacing-05);
+    height: 40px;
+    background: var(--cds-button-secondary);
+    color: var(--cds-text-primary);
+    border: none;
+    cursor: pointer;
+    transition: background 70ms;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .btn-secondary:hover { background: var(--cds-button-secondary-hover); }
+  .btn-secondary:focus {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
+  .btn-secondary:disabled { background: var(--cds-layer-02); color: var(--cds-text-disabled); cursor: not-allowed; }
+
+  /* ── Carbon Divider ───────────────────────────────────────────────────── */
+  .divider {
+    display: flex; align-items: center; gap: var(--cds-spacing-05);
+    margin: var(--cds-spacing-07) 0;
+  }
+  .divider-line { flex: 1; height: 1px; background: var(--cds-border-subtle); }
+  .divider-text {
+    font: var(--cds-label-01);
+    color: var(--cds-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Carbon TextArea ─────────────────────────────────────────────────── */
+  .paste-area { position: relative; }
+  .paste-label {
+    font: var(--cds-label-01);
+    color: var(--cds-text-secondary);
+    letter-spacing: 0.02em;
+    margin-bottom: var(--cds-spacing-02);
+    display: flex;
+    align-items: center;
+    gap: var(--cds-spacing-02);
+  }
+  textarea {
+    width: 100%;
+    min-height: 160px;
+    background: var(--cds-layer-01);
+    border: none;
+    border-bottom: 1px solid var(--cds-border-strong);
+    padding: var(--cds-spacing-04);
+    font: var(--cds-code-01);
+    color: var(--cds-text-primary);
+    resize: vertical;
+    outline: none;
+    transition: border-color 70ms;
+    line-height: 1.7;
+  }
+  textarea:focus {
+    outline: 2px solid var(--cds-interactive);
+    outline-offset: -2px;
+    border-bottom-color: var(--cds-interactive);
+  }
+  textarea::placeholder { color: var(--cds-text-placeholder); }
+
+  .analyze-bar {
+    display: flex; gap: var(--cds-spacing-03);
+    margin-top: var(--cds-spacing-04);
+    align-items: center;
+  }
+
+  /* ── Results section ─────────────────────────────────────────────────── */
+  #results {
+    margin-top: var(--cds-spacing-07);
+    display: none;
+    animation: cds-fade-in 150ms ease-out;
+  }
+  @keyframes cds-fade-in {
+    from { opacity: 0; transform: translateY(var(--cds-spacing-02)); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* Carbon page header */
+  .results-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: var(--cds-spacing-06);
+    padding-bottom: var(--cds-spacing-05);
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+  .results-title {
+    font: 300 28px/36px 'IBM Plex Sans', sans-serif;
+    color: var(--cds-text-primary);
+    letter-spacing: 0;
+  }
+  .results-meta {
+    font: var(--cds-label-01);
+    color: var(--cds-text-secondary);
+    margin-top: var(--cds-spacing-02);
+  }
+
+  /* ── Carbon Tiles (summary cards) ───────────────────────────────────── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--cds-border-subtle);
+    margin-bottom: var(--cds-spacing-06);
+    border: 1px solid var(--cds-border-subtle);
+  }
+  @media (max-width: 900px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 540px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .summary-card {
+    background: var(--cds-layer-01);
+    padding: var(--cds-spacing-05);
+    position: relative;
+    border-bottom: 3px solid transparent;
+    transition: background 70ms;
+  }
+  .summary-card:hover { background: var(--cds-layer-hover); cursor: default; }
+  .summary-card.total    { border-bottom-color: var(--cds-support-info); }
+  .summary-card.critical { border-bottom-color: var(--cds-support-error); }
+  .summary-card.caution  { border-bottom-color: var(--cds-support-caution); }
+  .summary-card.ok       { border-bottom-color: var(--cds-support-success); }
+  .summary-card.unknown-card { border-bottom-color: var(--cds-support-undefined); }
+  .summary-card.nc-card       { border-bottom-color: var(--cds-support-purple); }
+  .summary-card.proprietary  { border-bottom-color: #8d8d8d; }
+  .summary-card.third-party  { border-bottom-color: var(--cds-interactive); }
+
+  .card-label {
+    font: var(--cds-label-01);
+    color: var(--cds-text-secondary);
+    margin-bottom: var(--cds-spacing-03);
+    letter-spacing: 0.02em;
+  }
+  .card-value {
+    font: 300 42px/1 'IBM Plex Sans', sans-serif;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .card-value.total   { color: var(--cds-support-info); }
+  .card-value.critical { color: var(--cds-support-error); }
+  .card-value.caution { color: var(--cds-support-caution); }
+  .card-value.ok      { color: var(--cds-support-success); }
+  .card-value.unknown-val { color: var(--cds-support-undefined); }
+  .card-value.nc-val      { color: var(--cds-support-purple); }
+  .card-value.prop-val    { color: #8d8d8d; }
+  .card-value.tp-val      { color: var(--cds-interactive); }
+
+  .card-sub {
+    font: var(--cds-label-01);
+    color: var(--cds-text-secondary);
+    margin-top: var(--cds-spacing-03);
+  }
+
+  /* ── Carbon Inline Notifications ────────────────────────────────────── */
+  .unknown-banner {
+    display: none;
+    background: var(--cds-notification-warning-bg);
+    border-left: 3px solid var(--cds-support-warning);
+    padding: var(--cds-spacing-04) var(--cds-spacing-05);
+    margin-bottom: var(--cds-spacing-04);
+    gap: var(--cds-spacing-04);
+    align-items: flex-start;
+    font: var(--cds-body-compact-01);
+    color: var(--cds-text-primary);
+  }
+  .unknown-banner.visible { display: flex; }
+  .unknown-banner strong { color: var(--cds-text-primary); font-weight: 600; }
+  .unknown-banner .banner-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; color: var(--cds-support-warning); }
+
+  .nc-banner {
+    display: none;
+    background: var(--cds-notification-purple-bg);
+    border-left: 3px solid var(--cds-support-purple);
+    padding: var(--cds-spacing-04) var(--cds-spacing-05);
+    margin-bottom: var(--cds-spacing-04);
+    gap: var(--cds-spacing-04);
+    align-items: flex-start;
+    font: var(--cds-body-compact-01);
+    color: var(--cds-text-primary);
+  }
+  .nc-banner.visible { display: flex; }
+  .nc-banner strong { color: var(--cds-support-purple); font-weight: 600; }
+  .nc-banner .banner-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; color: var(--cds-support-purple); }
+
+  /* ── Carbon Content Switcher (filter bar) ───────────────────────────── */
+  .filter-bar {
+    display: flex; gap: 0;
+    margin-bottom: var(--cds-spacing-05);
+    flex-wrap: wrap;
+    align-items: stretch;
+    border: 1px solid var(--cds-border-subtle);
+    background: var(--cds-layer-01);
+    width: fit-content;
+    max-width: 100%;
+  }
+  .filter-label { display: none; } /* hidden — tabs are self-labeling */
+  .filter-btn {
+    font: var(--cds-body-compact-01);
+    padding: 0 var(--cds-spacing-05);
+    height: 40px;
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--cds-border-subtle);
+    color: var(--cds-text-secondary);
+    cursor: pointer;
+    transition: background 70ms, color 70ms;
+    white-space: nowrap;
+    position: relative;
+  }
+  .filter-btn:last-of-type { border-right: none; }
+  .filter-btn:hover { background: var(--cds-layer-hover); color: var(--cds-text-primary); }
+  .filter-btn.active {
+    background: var(--cds-layer-selected);
+    color: var(--cds-text-primary);
+    font-weight: 600;
+  }
+
+  /* Search — Carbon search field */
+  .search-input {
+    margin-left: var(--cds-spacing-04);
+    background: var(--cds-layer-01);
+    border: none;
+    border-bottom: 1px solid var(--cds-border-strong);
+    padding: 0 var(--cds-spacing-04);
+    font: var(--cds-body-compact-01);
+    color: var(--cds-text-primary);
+    outline: none;
+    height: 40px;
+    width: 240px;
+    transition: border-color 70ms;
+  }
+  .search-input:focus {
+    outline: 2px solid var(--cds-interactive);
+    outline-offset: -2px;
+    border-bottom-color: transparent;
+  }
+  .search-input::placeholder { color: var(--cds-text-placeholder); }
+
+  /* ── Carbon Data Table ───────────────────────────────────────────────── */
+  .table-wrap {
+    background: var(--cds-layer-01);
+    overflow: hidden;
+    border: 1px solid var(--cds-border-subtle);
+  }
+  table { width: 100%; border-collapse: collapse; }
+
+  thead tr {
+    background: var(--cds-layer-02);
+    border-bottom: 1px solid var(--cds-border-strong);
+  }
+  th {
+    font: var(--cds-label-01);
+    letter-spacing: 0.02em;
+    color: var(--cds-text-secondary);
+    padding: var(--cds-spacing-04) var(--cds-spacing-05);
+    text-align: left;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  th:hover { color: var(--cds-text-primary); }
+
+  tbody tr {
+    background: var(--cds-layer-01);
+    border-bottom: 1px solid var(--cds-border-subtle);
+    transition: background 70ms;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--cds-layer-hover); }
+
+  td {
+    padding: var(--cds-spacing-04) var(--cds-spacing-05);
+    font: var(--cds-body-compact-01);
+    vertical-align: middle;
+  }
+
+  .pkg-name {
+    font: var(--cds-code-02);
+    font-weight: 500;
+    color: var(--cds-text-primary);
+  }
+  .pkg-version {
+    font: var(--cds-code-01);
+    color: var(--cds-text-secondary);
+    margin-top: 2px;
+  }
+
+  /* Carbon Tag component */
+  .license-badge {
+    display: inline-flex;
+    align-items: center;
+    font: var(--cds-label-01);
+    font-weight: 600;
+    padding: 0 var(--cds-spacing-03);
+    height: 24px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+  .license-badge.critical {
+    background: rgba(255,131,137,0.15);
+    color: var(--cds-support-error);
+    outline: 1px solid rgba(255,131,137,0.4);
+  }
+  .license-badge.caution {
+    background: rgba(255,131,43,0.12);
+    color: var(--cds-support-caution);
+    outline: 1px solid rgba(255,131,43,0.35);
+  }
+  .license-badge.ok {
+    background: rgba(66,190,101,0.10);
+    color: var(--cds-support-success);
+    outline: 1px solid rgba(66,190,101,0.3);
+  }
+  .license-badge.unknown {
+    background: rgba(141,141,141,0.12);
+    color: var(--cds-support-undefined);
+    outline: 1px solid rgba(141,141,141,0.3);
+  }
+
+  /* Risk label */
+  .risk-label {
+    font: var(--cds-label-01);
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .risk-label.critical    { color: var(--cds-support-error); }
+  .risk-label.caution     { color: var(--cds-support-caution); }
+  .risk-label.ok          { color: var(--cds-support-success); }
+  .risk-label.unknown     { color: var(--cds-support-undefined); }
+  .risk-label.noncommercial { color: var(--cds-support-purple); }
+
+  /* Non-commercial badge */
+  .nc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(190,149,255,0.12);
+    outline: 1px solid rgba(190,149,255,0.35);
+    color: var(--cds-support-purple);
+    font: var(--cds-label-01);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 0 var(--cds-spacing-02);
+    height: 18px;
+    margin-top: 4px;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+
+  /* Proprietary / third-party badges */
+  .origin-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    font: var(--cds-label-01); font-size: 10px; font-weight: 600;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 0 var(--cds-spacing-02); height: 18px; white-space: nowrap;
+  }
+  .origin-badge.proprietary {
+    background: rgba(141,141,141,0.12); outline: 1px solid rgba(141,141,141,0.35);
+    color: #8d8d8d;
+  }
+  .origin-badge.third-party {
+    background: rgba(69,137,255,0.10); outline: 1px solid rgba(69,137,255,0.3);
+    color: var(--cds-interactive);
+  }
+  tr.prop-row td { background: rgba(141,141,141,0.03); }
+  tr.prop-row:hover td { background: rgba(141,141,141,0.07) !important; }
+  tr.nc-row td { background: rgba(190,149,255,0.04); }
+  tr.nc-row:hover td { background: rgba(190,149,255,0.08) !important; }
+  .summary-card.nc-card { background: rgba(190,149,255,0.06); }
+
+  .reason-text {
+    font: var(--cds-body-compact-01);
+    color: var(--cds-text-secondary);
+    max-width: 320px;
+    line-height: 1.5;
+  }
+
+  /* ── Carbon Loading bar ─────────────────────────────────────────────── */
+  .loading-bar {
+    height: 4px;
+    background: var(--cds-layer-02);
+    overflow: hidden;
+    margin-top: var(--cds-spacing-03);
+    display: none;
+  }
+  .loading-bar.active { display: block; }
+  .loading-bar-fill {
+    height: 100%;
+    background: var(--cds-button-primary);
+    width: 0%;
+    animation: cds-indeterminate 1.4s ease-in-out infinite;
+  }
+  @keyframes cds-indeterminate {
+    0%   { transform: translateX(-100%); width: 60%; }
+    50%  { transform: translateX(80%); width: 60%; }
+    100% { transform: translateX(200%); width: 40%; }
+  }
+
+  /* ── Unknown row / Insight drawer ──────────────────────────────────── */
+  tbody tr.has-unknown { cursor: pointer; }
+  tbody tr.has-unknown:hover { background: var(--cds-layer-hover) !important; }
+  tbody tr.expanded td { background: var(--cds-layer-02) !important; }
+
+  .insight-row td {
+    padding: 0 !important;
+    background: var(--cds-background) !important;
+    border-bottom: 1px solid var(--cds-border-subtle) !important;
+  }
+  .insight-drawer {
+    padding: var(--cds-spacing-05) var(--cds-spacing-06);
+    border-top: 1px solid var(--cds-border-subtle);
+    border-left: 3px solid var(--cds-border-strong);
+    background: var(--cds-background);
+  }
+  .insight-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--cds-spacing-05);
+    margin-top: var(--cds-spacing-04);
+  }
+  @media (max-width: 700px) { .insight-grid { grid-template-columns: 1fr; } }
+
+  .insight-section {
+    background: var(--cds-layer-01);
+    padding: var(--cds-spacing-04);
+    border: 1px solid var(--cds-border-subtle);
+  }
+  .insight-section-title {
+    font: var(--cds-label-01);
+    font-weight: 600;
+    color: var(--cds-text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: var(--cds-spacing-03);
+    padding-bottom: var(--cds-spacing-02);
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+  .insight-tag {
+    display: inline-flex;
+    align-items: center;
+    font: var(--cds-label-01);
+    padding: 0 var(--cds-spacing-03);
+    height: 24px;
+    letter-spacing: 0.02em;
+    font-weight: 500;
+  }
+  .eco-pypi   { background: rgba(55,118,171,0.2); color: #74b3e8; outline: 1px solid rgba(55,118,171,0.4); }
+  .eco-npm    { background: rgba(203,56,55,0.15); color: #f08080; outline: 1px solid rgba(203,56,55,0.35); }
+  .eco-maven  { background: rgba(194,106,34,0.15); color: #e0a060; outline: 1px solid rgba(194,106,34,0.35); }
+  .eco-cargo  { background: rgba(222,165,132,0.15); color: #e8b98c; outline: 1px solid rgba(222,165,132,0.35); }
+  .eco-go     { background: rgba(0,173,216,0.12); color: #5cc8e8; outline: 1px solid rgba(0,173,216,0.3); }
+  .eco-gh     { background: rgba(141,141,141,0.15); color: #c6c6c6; outline: 1px solid rgba(141,141,141,0.3); }
+
+  .insight-step {
+    font: var(--cds-body-compact-01);
+    color: var(--cds-text-secondary);
+    margin: var(--cds-spacing-02) 0;
+    padding-left: var(--cds-spacing-05);
+    position: relative;
+  }
+  .insight-step::before {
+    content: attr(data-n);
+    position: absolute; left: 0;
+    font: 600 11px/1 'IBM Plex Mono', monospace;
+    color: var(--cds-text-placeholder);
+  }
+  .insight-step code {
+    font: var(--cds-code-01);
+    background: var(--cds-layer-02);
+    padding: 1px var(--cds-spacing-02);
+    color: var(--cds-link-primary);
+    border: 1px solid var(--cds-border-subtle);
+  }
+  .insight-link {
+    color: var(--cds-link-primary);
+    text-decoration: none;
+    font: var(--cds-label-01);
+  }
+  .insight-link:hover { text-decoration: underline; color: var(--cds-link-visited); }
+
+  /* ── Carbon inline retrieve result ──────────────────────────────────── */
+  .retrieve-result {
+    margin-top: var(--cds-spacing-04);
+    padding: var(--cds-spacing-04) var(--cds-spacing-05);
+    display: none;
+    align-items: flex-start;
+    gap: var(--cds-spacing-04);
+    border-left: 3px solid var(--cds-border-subtle);
+    background: var(--cds-layer-01);
+  }
+  .retrieve-result.success { border-left-color: var(--cds-support-success); background: var(--cds-notification-success-bg); }
+  .retrieve-result.notfound { border-left-color: var(--cds-support-caution); background: var(--cds-notification-warning-bg); }
+  .retrieve-result.error { border-left-color: var(--cds-support-error); background: var(--cds-notification-error-bg); }
+
+  .result-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .result-body { flex: 1; }
+  .result-license {
+    font: var(--cds-heading-compact-01);
+    color: var(--cds-text-primary);
+    margin-bottom: var(--cds-spacing-01);
+  }
+  .result-license.found { color: var(--cds-support-success); }
+  .result-license.notfound { color: var(--cds-support-caution); }
+  .result-source { font: var(--cds-label-01); color: var(--cds-text-secondary); }
+
+  .btn-apply {
+    font: var(--cds-body-compact-01);
+    padding: 0 var(--cds-spacing-05);
+    height: 32px;
+    background: var(--cds-button-primary);
+    color: var(--cds-text-on-color);
+    border: none;
+    cursor: pointer;
+    transition: background 70ms;
+    white-space: nowrap;
+    flex-shrink: 0;
+    align-self: flex-start;
+  }
+  .btn-apply:hover { background: var(--cds-button-primary-hover); }
+
+  .btn-retrieve {
+    font: var(--cds-label-01);
+    font-weight: 600;
+    padding: 0 var(--cds-spacing-04);
+    height: 32px;
+    background: var(--cds-button-secondary);
+    color: var(--cds-text-primary);
+    border: none;
+    cursor: pointer;
+    transition: background 70ms;
+    display: inline-flex; align-items: center; gap: var(--cds-spacing-02);
+    white-space: nowrap;
+    margin-top: var(--cds-spacing-03);
+  }
+  .btn-retrieve:hover { background: var(--cds-button-secondary-hover); }
+  .btn-retrieve.loading { opacity: 0.6; cursor: wait; }
+  .retrieve-icon, .retrieve-spinner { font-size: 14px; }
+  .btn-retrieve.loading .retrieve-icon { display: none; }
+  .btn-retrieve:not(.loading) .retrieve-spinner { display: none; }
+
+  /* ── Legend ─────────────────────────────────────────────────────────── */
+  .legend {
+    display: flex; gap: var(--cds-spacing-06);
+    flex-wrap: wrap;
+    margin-top: var(--cds-spacing-06);
+    padding-top: var(--cds-spacing-05);
+    border-top: 1px solid var(--cds-border-subtle);
+  }
+  .legend-item { display: flex; align-items: flex-start; gap: var(--cds-spacing-03); }
+  .legend-dot {
+    width: 3px; height: 32px;
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+  .legend-title {
+    font: var(--cds-label-01);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin-bottom: 2px;
+  }
+  .legend-desc { font: var(--cds-label-01); color: var(--cds-text-secondary); max-width: 240px; }
+
+  /* ── Empty state ────────────────────────────────────────────────────── */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--cds-spacing-09) var(--cds-spacing-07);
+    color: var(--cds-text-secondary);
+    gap: var(--cds-spacing-04);
+  }
+  .empty-state-icon { font-size: 32px; color: var(--cds-text-placeholder); }
+  .empty-state-text { font: var(--cds-body-01); color: var(--cds-text-secondary); }
+
+  /* ── Toast ──────────────────────────────────────────────────────────── */
+  .toast {
+    position: fixed; bottom: var(--cds-spacing-06); right: var(--cds-spacing-06);
+    background: var(--cds-layer-02);
+    color: var(--cds-text-primary);
+    font: var(--cds-body-compact-01);
+    padding: var(--cds-spacing-04) var(--cds-spacing-05);
+    border-left: 3px solid var(--cds-button-primary);
+    max-width: 360px;
+    opacity: 0;
+    transform: translateY(var(--cds-spacing-04));
+    transition: opacity 200ms, transform 200ms;
+    pointer-events: none;
+    z-index: 9000;
+  }
+  .toast.show { opacity: 1; transform: none; }
+
+  /* ── Privacy notice ─────────────────────────────────────────────────────── */
+  .privacy-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--cds-spacing-04);
+    background: var(--cds-notification-info-bg);
+    border-left: 3px solid var(--cds-support-info);
+    padding: var(--cds-spacing-04) var(--cds-spacing-05);
+    margin-bottom: var(--cds-spacing-06);
+    font: var(--cds-body-compact-01);
+    color: var(--cds-text-primary);
+  }
+  .privacy-notice-icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; color: var(--cds-support-info); }
+  .privacy-notice-title { font-weight: 600; margin-bottom: var(--cds-spacing-01); }
+  .privacy-notice-body { font: var(--cds-label-01); color: var(--cds-text-secondary); line-height: 1.6; }
+  .privacy-notice-body strong { color: var(--cds-text-primary); font-weight: 600; }
+
+  /* Lock chip in header */
+  .privacy-chip {
+    display: flex; align-items: center; gap: var(--cds-spacing-02);
+    font: var(--cds-label-01); color: var(--cds-support-success);
+    padding: 0 var(--cds-spacing-03); height: 24px;
+    background: rgba(66,190,101,0.10);
+    border: 1px solid rgba(66,190,101,0.25);
+    margin-left: var(--cds-spacing-05);
+    white-space: nowrap;
+  }
+
+  /* Live retrieval privacy callout */
+  .rv-privacy-note {
+    display: flex; align-items: flex-start; gap: var(--cds-spacing-03);
+    background: var(--cds-notification-info-bg);
+    border-left: 3px solid var(--cds-border-interactive);
+    padding: var(--cds-spacing-03) var(--cds-spacing-05);
+    margin: 0 var(--cds-spacing-07) var(--cds-spacing-05);
+    font: var(--cds-label-01); color: var(--cds-text-secondary);
+  }
+  .rv-privacy-note strong { color: var(--cds-text-primary); }
+
+  /* ── Live Retrieval view ─────────────────────────────────────────────── */
+  .rv-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: var(--cds-spacing-06) var(--cds-spacing-07);
+    border-bottom: 1px solid var(--cds-border-subtle);
+    background: var(--cds-background);
+    flex-wrap: wrap; gap: var(--cds-spacing-04);
+  }
+  .rv-title {
+    font: 300 28px/36px 'IBM Plex Sans', sans-serif;
+    color: var(--cds-text-primary);
+  }
+  .rv-sub { font: var(--cds-label-01); color: var(--cds-text-secondary); margin-top: 4px; }
+
+  /* Carbon progress bar */
+  .rv-progress-wrap {
+    padding: 0 var(--cds-spacing-07) var(--cds-spacing-05);
+    background: var(--cds-background);
+  }
+  .rv-progress-track {
+    height: 8px;
+    background: var(--cds-layer-02);
+    overflow: hidden;
+  }
+  .rv-progress-fill {
+    height: 100%;
+    background: var(--cds-button-primary);
+    transition: width 200ms ease;
+  }
+  .rv-progress-label {
+    font: var(--cds-label-01);
+    color: var(--cds-text-secondary);
+    margin-top: var(--cds-spacing-02);
+  }
+
+  /* Carbon structured list for stats */
+  .rv-stats {
+    display: flex; align-items: center;
+    gap: 0;
+    padding: var(--cds-spacing-05) var(--cds-spacing-07);
+    background: var(--cds-layer-01);
+    border-bottom: 1px solid var(--cds-border-subtle);
+    flex-wrap: wrap;
+  }
+  .rv-stat {
+    padding: var(--cds-spacing-03) var(--cds-spacing-06) var(--cds-spacing-03) 0;
+    min-width: 80px;
+  }
+  .rv-stat-val {
+    font: 300 32px/1 'IBM Plex Sans', sans-serif;
+    letter-spacing: -0.02em;
+    color: var(--cds-text-primary);
+  }
+  .rv-stat-label { font: var(--cds-label-01); color: var(--cds-text-secondary); margin-top: 4px; }
+  .rv-stat-sep {
+    width: 1px; height: 48px;
+    background: var(--cds-border-subtle);
+    margin: 0 var(--cds-spacing-06) 0 0;
+    align-self: center;
+  }
+
+  /* Ecosystem filter — Carbon content switcher */
+  .rv-eco-filter {
+    display: flex; align-items: center;
+    padding: 0 var(--cds-spacing-07);
+    background: var(--cds-background);
+    border-bottom: 1px solid var(--cds-border-subtle);
+    gap: 0;
+    flex-wrap: wrap;
+    min-height: 48px;
+  }
+  .rv-filter-label {
+    font: var(--cds-label-01);
+    color: var(--cds-text-secondary);
+    margin-right: var(--cds-spacing-04);
+    white-space: nowrap;
+    padding: var(--cds-spacing-04) 0;
+  }
+  .rv-eco-btn {
+    font: var(--cds-body-compact-01);
+    padding: 0 var(--cds-spacing-04);
+    height: 40px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--cds-text-secondary);
+    cursor: pointer;
+    transition: background 70ms, color 70ms, border-color 70ms;
+    white-space: nowrap;
+  }
+  .rv-eco-btn:hover { background: var(--cds-layer-01); color: var(--cds-text-primary); }
+  .rv-eco-btn.active {
+    color: var(--cds-text-primary);
+    border-bottom-color: var(--cds-border-interactive);
+    background: var(--cds-layer-01);
+    font-weight: 600;
+  }
+
+  /* Retrieve table */
+  .rv-table-wrap {
+    overflow-x: auto;
+    margin: 0 var(--cds-spacing-07) var(--cds-spacing-07);
+    border: 1px solid var(--cds-border-subtle);
+    background: var(--cds-layer-01);
+  }
+  .rv-table { width: 100%; border-collapse: collapse; min-width: 700px; }
+  .rv-table thead tr {
+    background: var(--cds-layer-02);
+    border-bottom: 1px solid var(--cds-border-strong);
+  }
+  .rv-table th {
+    font: var(--cds-label-01);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--cds-text-secondary);
+    padding: var(--cds-spacing-03) var(--cds-spacing-04);
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: none;
+  }
+  .rv-table tbody tr {
+    border-bottom: 1px solid var(--cds-border-subtle);
+    background: var(--cds-layer-01);
+    transition: background 70ms;
+  }
+  .rv-table tbody tr:hover { background: var(--cds-layer-hover); }
+  .rv-table td {
+    padding: var(--cds-spacing-03) var(--cds-spacing-04);
+    font: var(--cds-body-compact-01);
+    vertical-align: middle;
+  }
+  .rv-table input[type="checkbox"] { accent-color: var(--cds-button-primary); }
+
+  /* Status dots in rv table */
+  .rv-status-dot {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px;
+  }
+  .rv-status-dot.pending   { background: var(--cds-text-placeholder); }
+  .rv-status-dot.loading   { background: var(--cds-support-info); animation: cds-blink 1s infinite; }
+  .rv-status-dot.found     { background: var(--cds-support-success); }
+  .rv-status-dot.notfound  { background: var(--cds-support-caution); }
+  .rv-status-dot.error     { background: var(--cds-support-error); }
+  .rv-status-dot.applied   { background: var(--cds-support-success); }
+  .rv-status-dot.manual    { background: var(--cds-support-undefined); }
+
+  .rv-pkg-name { font: var(--cds-code-01); color: var(--cds-text-primary); font-weight: 500; }
+  .rv-pkg-ver  { font: var(--cds-label-01); color: var(--cds-text-secondary); }
+  .rv-raw-val  { font: var(--cds-label-01); color: var(--cds-text-secondary); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .rv-license-found    { font: var(--cds-code-01); font-weight: 600; color: var(--cds-support-success); }
+  .rv-license-applied  { font: var(--cds-code-01); font-weight: 600; color: var(--cds-link-primary); }
+  .rv-license-pending  { font: var(--cds-label-01); color: var(--cds-text-placeholder); }
+  .rv-license-notfound { font: var(--cds-label-01); color: var(--cds-support-caution); }
+
+  .rv-action-cell { display: flex; gap: var(--cds-spacing-02); justify-content: center; flex-wrap: wrap; }
+  .btn-rv-single {
+    font: var(--cds-label-01);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 0 var(--cds-spacing-03);
+    height: 28px;
+    cursor: pointer;
+    transition: background 70ms;
+    white-space: nowrap;
+    border: none;
+    display: inline-flex; align-items: center;
+  }
+  .btn-rv-fetch {
+    background: var(--cds-button-secondary);
+    color: var(--cds-text-primary);
+  }
+  .btn-rv-fetch:hover { background: var(--cds-button-secondary-hover); }
+  .btn-rv-fetch:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-rv-apply {
+    background: var(--cds-button-primary);
+    color: var(--cds-text-on-color);
+  }
+  .btn-rv-apply:hover { background: var(--cds-button-primary-hover); }
+
+  /* Manual notice */
+  .rv-manual-notice {
+    background: var(--cds-layer-01);
+    border: 1px solid var(--cds-border-subtle);
+    border-left: 3px solid var(--cds-border-strong);
+    padding: var(--cds-spacing-05);
+    margin: 0 var(--cds-spacing-07) var(--cds-spacing-07);
+  }
+  .rv-manual-chip {
+    display: inline-flex; align-items: center; gap: var(--cds-spacing-03);
+    font: var(--cds-label-01);
+    padding: 0 var(--cds-spacing-03);
+    height: 24px;
+    background: var(--cds-layer-02);
+    border: 1px solid var(--cds-border-subtle);
+    color: var(--cds-text-secondary);
+    margin: var(--cds-spacing-01) var(--cds-spacing-01) var(--cds-spacing-01) 0;
+  }
+
+  /* ═══ AGE VIEW ══════════════════════════════════════════════════════════════ */
+  .age-header {
+    padding: var(--cds-spacing-06) var(--cds-spacing-07);
+    border-bottom: 1px solid var(--cds-border-subtle);
+    display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: var(--cds-spacing-04);
+    background: var(--cds-layer-01);
+  }
+  .age-title { font: 300 20px/28px 'IBM Plex Sans', sans-serif; color: var(--cds-text-primary); }
+  .age-sub { font: var(--cds-label-01); color: var(--cds-text-secondary); margin-top: var(--cds-spacing-02); }
+
+  .age-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1px;
+    background: var(--cds-border-subtle);
+    margin: var(--cds-spacing-06) var(--cds-spacing-07);
+    border: 1px solid var(--cds-border-subtle);
+  }
+  
+  @media (max-width: 1200px) {
+    .age-summary-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  
+  @media (max-width: 768px) {
+    .age-summary-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .age-card {
+    background: var(--cds-layer-01);
+    padding: var(--cds-spacing-05);
+    border-bottom: 3px solid transparent;
+  }
+  .age-card.fresh    { border-bottom-color: var(--cds-support-success); }
+  .age-card.aging    { border-bottom-color: var(--cds-support-warning); }
+  .age-card.stale    { border-bottom-color: var(--cds-support-caution); }
+  .age-card.critical-age { border-bottom-color: var(--cds-support-error); }
+  .age-card.dormant  { border-bottom-color: var(--cds-support-purple); }
+  .age-card.eol      { border-bottom-color: #da1e28; }
+  .age-card.unknown-age  { border-bottom-color: var(--cds-support-undefined); }
+
+  .age-card-label { font: var(--cds-label-01); color: var(--cds-text-secondary); margin-bottom: var(--cds-spacing-03); }
+  .age-card-value { font: 300 42px/1 'IBM Plex Sans', sans-serif; letter-spacing: -0.02em; }
+  .age-card-value.fresh    { color: var(--cds-support-success); }
+  .age-card-value.aging    { color: var(--cds-support-warning); }
+  .age-card-value.stale    { color: var(--cds-support-caution); }
+  .age-card-value.critical-age { color: var(--cds-support-error); }
+  .age-card-value.dormant  { color: var(--cds-support-purple); }
+  .age-card-value.eol      { color: #da1e28; }
+  .age-card-value.unknown-age  { color: var(--cds-support-undefined); }
+  .age-card-sub  { font: var(--cds-label-01); color: var(--cds-text-secondary); margin-top: var(--cds-spacing-03); }
+
+  .age-badge-pill {
+    display: inline-block;
+    font: var(--cds-label-01); font-weight: 600;
+    padding: 2px var(--cds-spacing-03);
+    border-radius: 0;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 10px;
+  }
+  .age-badge-pill.fresh    { background: rgba(66,190,101,0.15); color: var(--cds-support-success); }
+  .age-badge-pill.aging    { background: rgba(241,194,27,0.15); color: var(--cds-support-warning); }
+  .age-badge-pill.stale    { background: rgba(255,131,43,0.15); color: var(--cds-support-caution); }
+  .age-badge-pill.critical-age { background: rgba(255,131,137,0.15); color: var(--cds-support-error); }
+  .age-badge-pill.dormant  { background: rgba(190,149,255,0.15); color: var(--cds-support-purple); }
+  .age-badge-pill.eol      { background: rgba(218,30,40,0.15); color: #da1e28; }
+  .age-badge-pill.unknown-age  { background: rgba(141,141,141,0.12); color: var(--cds-text-secondary); }
+
+  .age-filter-bar {
+    display: flex; gap: 0; flex-wrap: wrap; align-items: stretch;
+    border: 1px solid var(--cds-border-subtle);
+    background: var(--cds-layer-01);
+    width: fit-content; max-width: 100%;
+    margin: 0 var(--cds-spacing-07) var(--cds-spacing-05);
+  }
+  .age-filter-btn {
+    font: var(--cds-body-compact-01);
+    padding: 0 var(--cds-spacing-05); height: 40px;
+    background: transparent; border: none;
+    border-right: 1px solid var(--cds-border-subtle);
+    color: var(--cds-text-secondary); cursor: pointer;
+    transition: background 70ms, color 70ms; white-space: nowrap;
+  }
+  .age-filter-btn:last-of-type { border-right: none; }
+  .age-filter-btn:hover { background: var(--cds-layer-hover); color: var(--cds-text-primary); }
+  .age-filter-btn.active { background: var(--cds-layer-selected); color: var(--cds-text-primary); font-weight: 600; }
+
+  .age-table-wrap {
+    margin: 0 var(--cds-spacing-07) var(--cds-spacing-07);
+    background: var(--cds-layer-01);
+    border: 1px solid var(--cds-border-subtle);
+    overflow: hidden;
+  }
+  .age-table { width: 100%; border-collapse: collapse; }
+  .age-table thead tr { background: var(--cds-layer-02); border-bottom: 1px solid var(--cds-border-strong); }
+  .age-table th {
+    font: var(--cds-label-01); font-weight: 600; letter-spacing: 0.02em;
+    color: var(--cds-text-secondary); padding: var(--cds-spacing-04) var(--cds-spacing-05);
+    text-align: left; white-space: nowrap; cursor: pointer; user-select: none;
+  }
+  .age-table th:hover { color: var(--cds-text-primary); }
+  .age-table tbody tr { background: var(--cds-layer-01); border-bottom: 1px solid var(--cds-border-subtle); transition: background 70ms; }
+  .age-table tbody tr:last-child { border-bottom: none; }
+  .age-table tbody tr:hover { background: var(--cds-layer-hover); }
+  .age-table td { padding: var(--cds-spacing-04) var(--cds-spacing-05); font: var(--cds-body-compact-01); vertical-align: middle; }
+
+  .age-progress-wrap {
+    padding: 0 var(--cds-spacing-07) var(--cds-spacing-04);
+    display: flex; align-items: center; gap: var(--cds-spacing-04);
+  }
+  .age-progress-track { flex: 1; height: 4px; background: var(--cds-layer-02); }
+  .age-progress-fill  { height: 4px; background: var(--cds-button-primary); transition: width 0.2s; width: 0%; }
+  .age-progress-label { font: var(--cds-label-01); color: var(--cds-text-secondary); white-space: nowrap; min-width: 60px; text-align: right; }
+
+  .age-privacy-note {
+    margin: 0 var(--cds-spacing-07) var(--cds-spacing-05);
+    background: var(--cds-notification-info-bg);
+    border-left: 3px solid var(--cds-support-info);
+    padding: var(--cds-spacing-04) var(--cds-spacing-05);
+    font: var(--cds-label-01); color: var(--cds-text-secondary);
+    display: flex; gap: var(--cds-spacing-04); align-items: flex-start;
+  }
+
+  .age-stats {
+    display: flex; align-items: stretch;
+    border-top: 1px solid var(--cds-border-subtle);
+    border-bottom: 1px solid var(--cds-border-subtle);
+    margin-bottom: var(--cds-spacing-05);
+    background: var(--cds-layer-01);
+  }
+  .age-stat { padding: var(--cds-spacing-04) var(--cds-spacing-06); text-align: center; }
+  .age-stat-val { font: 600 20px/1 'IBM Plex Sans', sans-serif; color: var(--cds-text-primary); }
+  .age-stat-label { font: var(--cds-label-01); color: var(--cds-text-secondary); margin-top: var(--cds-spacing-02); }
+  .age-stat-sep { width: 1px; background: var(--cds-border-subtle); margin: var(--cds-spacing-03) 0; }
+
+  .age-search-row {
+    display: flex; align-items: center; gap: var(--cds-spacing-04);
+    margin: 0 var(--cds-spacing-07) var(--cds-spacing-04);
+    flex-wrap: wrap;
+  }
+
+  /* ── Footer ──────────────────────────────────────────────────────────────── */
+  .footer {
+    background: var(--cds-layer-01);
+    border-top: 1px solid var(--cds-border-subtle);
+    padding: var(--cds-spacing-07) var(--cds-spacing-07);
+    margin-top: var(--cds-spacing-09);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .footer-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cds-spacing-03);
+    padding: var(--cds-spacing-03) var(--cds-spacing-05);
+    background: var(--cds-layer-02);
+    border: 1px solid var(--cds-border-subtle);
+    border-radius: 24px;
+    font: var(--cds-body-compact-01);
+    color: var(--cds-text-secondary);
+    text-decoration: none;
+    transition: all 110ms cubic-bezier(0.2, 0, 0.38, 0.9);
+  }
+
+  .footer-badge:hover {
+    background: var(--cds-layer-hover);
+    border-color: var(--cds-border-strong);
+    color: var(--cds-text-primary);
+  }
+
+  .footer-icon {
+    font-size: 18px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  .footer-text {
+    font-weight: 400;
+    letter-spacing: 0.01em;
+  }
+
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo-mark"><span>SB</span></div>
+  <div>
+    <div class="header-title">SBOM License Analyzer</div>
+  </div>
+  <nav class="header-nav" id="header-nav" style="display:none;">
+    <button class="nav-tab active" data-view="analysis" onclick="switchView('analysis', this)">Analysis</button>
+    <button class="nav-tab" data-view="retrieve" onclick="switchView('retrieve', this)">Live Retrieval <span class="nav-badge" id="nav-badge" style="display:none"></span></button>
+    <button class="nav-tab" data-view="age" onclick="switchView('age', this)">Component Age <span class="nav-badge" id="age-badge" style="display:none"></span></button>
+  </nav>
+  <div class="header-right">
+    <div class="privacy-chip">🔒 Processed locally — no data leaves your browser</div>
+    <div class="status-dot" style="margin-left:var(--cds-spacing-05);"></div>
+    <div class="status-label" id="header-status">Ready</div>
+    <div class="version-label">Version 1.0 3_26_26</div>
+  </div>
+</header>
+
+<main>
+  <!-- Privacy notice -->
+  <div class="privacy-notice">
+    <div class="privacy-notice-icon">🔒</div>
+    <div>
+      <div class="privacy-notice-title">Your data stays private</div>
+      <div class="privacy-notice-body">
+        Your SBOM — including <strong>company name, package names, versions, and license data</strong> — is processed entirely within your browser.
+        <strong>Nothing is uploaded to any server.</strong> All analysis runs locally in JavaScript. The only external calls made are the optional registry lookups in the Live Retrieval tab,
+        which send only individual package names to public registries (PyPI, npm, etc.) to retrieve license information — no SBOM structure, company identity, or context is transmitted.
+      </div>
+    </div>
+  </div>
+
+  <!-- Input section -->
+  <div id="input-section">
+    <div class="drop-zone" id="drop-zone">
+      <span class="drop-icon">↑</span>
+      <div class="drop-title">Drop your SBOM file here or click to upload</div>
+      <div class="drop-sub">Drag and drop to upload</div>
+      <div class="drop-formats">
+        <span class="format-tag">CycloneDX</span>
+        <span class="format-tag">SPDX</span>
+      </div>
+      <button class="btn-primary" onclick="event.stopPropagation(); document.getElementById('file-input').click()">Browse files</button>
+    </div>
+
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+    <div class="results-header">
+      <div>
+        <div class="results-title">Analysis results</div>
+        <div class="results-meta" id="results-meta"></div>
+      </div>
+      <div style="display:flex;gap:1px;">
+        <button class="btn-secondary" onclick="exportCSV()">Export CSV</button>
+        <button class="btn-secondary" onclick="clearResults()">Clear</button>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-card total">
+        <div class="card-label">Total Packages</div>
+        <div class="card-value total" id="count-total">0</div>
+        <div class="card-sub">components detected</div>
+      </div>
+      <div class="summary-card critical">
+        <div class="card-label">High risk</div>
+        <div class="card-value critical" id="count-critical">0</div>
+        <div class="card-sub">restrictive licenses</div>
+      </div>
+      <div class="summary-card caution">
+        <div class="card-label">Caution</div>
+        <div class="card-value caution" id="count-caution">0</div>
+        <div class="card-sub">review recommended</div>
+      </div>
+      <div class="summary-card ok">
+        <div class="card-label">Permissive</div>
+        <div class="card-value ok" id="count-ok">0</div>
+        <div class="card-sub">low risk licenses</div>
+      </div>
+      <div class="summary-card unknown-card">
+        <div class="card-label">Unknown</div>
+        <div class="card-value unknown-val" id="count-unknown">0</div>
+        <div class="card-sub">needs investigation</div>
+      </div>
+      <div class="summary-card nc-card">
+        <div class="card-label">Non-commercial</div>
+        <div class="card-value nc-val" id="count-nc">0</div>
+        <div class="card-sub">commercial use restricted</div>
+      </div>
+      <div class="summary-card proprietary">
+        <div class="card-label">Proprietary</div>
+        <div class="card-value prop-val" id="count-proprietary">0</div>
+        <div class="card-sub">internal / first-party</div>
+      </div>
+      <div class="summary-card third-party" style="grid-column:span 1;">
+        <div class="card-label">Third-party</div>
+        <div class="card-value tp-val" id="count-third-party">0</div>
+        <div class="card-sub">external dependencies</div>
+      </div>
+    </div>
+
+    <div class="unknown-banner" id="unknown-banner">
+      <div class="banner-icon">◌</div>
+      <div>
+        <strong>Unknown licenses detected — click any unknown row to see why and how to resolve it.</strong>
+        License data may be missing from the SBOM due to incomplete metadata, unrecognized identifiers, or tool limitations. Each row shows diagnostic details and specific retrieval steps.
+      </div>
+    </div>
+
+    <div class="nc-banner" id="nc-banner">
+      <div class="banner-icon">⊘</div>
+      <div>
+        <strong style="color:var(--cds-support-purple);">Non-commercial licenses detected — commercial use of these packages may be prohibited.</strong><br>
+        Licenses such as CC-BY-NC, BUSL, PolyForm Noncommercial, and similar restrict or prohibit use in commercial products or services. Review each flagged package and consult legal counsel before use in a commercial context.
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:var(--cds-spacing-04);margin-bottom:var(--cds-spacing-05);">
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">All</button>
+        <button class="filter-btn" data-filter="critical" onclick="setFilter('critical', this)">High risk</button>
+        <button class="filter-btn" data-filter="caution" onclick="setFilter('caution', this)">Caution</button>
+        <button class="filter-btn" data-filter="ok" onclick="setFilter('ok', this)">Permissive</button>
+        <button class="filter-btn" data-filter="unknown" onclick="setFilter('unknown', this)">Unknown</button>
+        <button class="filter-btn" data-filter="noncommercial" onclick="setFilter('noncommercial', this)" style="color:var(--cds-support-purple);">Non-commercial</button>
+        <button class="filter-btn" data-filter="proprietary" onclick="setFilter('proprietary', this)" style="color:#8d8d8d;">Proprietary</button>
+        <button class="filter-btn" data-filter="third-party" onclick="setFilter('third-party', this)" style="color:var(--cds-interactive);">Third-party</button>
+      </div>
+      <input type="text" class="search-input" id="search-input" placeholder="Search packages..." oninput="filterTable()">
+    </div>
+
+    <div class="table-wrap">
+      <table id="results-table">
+        <thead>
+          <tr>
+            <th onclick="sortTable('name')">Package</th>
+            <th onclick="sortTable('version')">Version</th>
+            <th onclick="sortTable('licenseId')">License</th>
+            <th onclick="sortTable('origin')">Origin</th>
+            <th onclick="sortTable('risk')">Risk level</th>
+            <th>Implications</th>
+            <th style="width:80px;text-align:center">Details</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--cds-support-error)"></div>
+        <div>
+          <div class="legend-title" style="color:var(--cds-support-error)">High risk</div>
+          <div class="legend-desc">Strong copyleft (GPL, AGPL, EUPL). May require source disclosure and license propagation.</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--cds-support-caution)"></div>
+        <div>
+          <div class="legend-title" style="color:var(--cds-support-caution)">Caution</div>
+          <div class="legend-desc">Weak copyleft (LGPL, MPL, CDDL). Review use case; some obligations apply.</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--cds-support-success)"></div>
+        <div>
+          <div class="legend-title" style="color:var(--cds-support-success)">Permissive</div>
+          <div class="legend-desc">MIT, Apache, BSD, ISC, etc. Minimal restrictions, attribution may be required.</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--cds-support-undefined)"></div>
+        <div>
+          <div class="legend-title" style="color:var(--cds-text-secondary)">Unknown</div>
+          <div class="legend-desc">License not identified or absent from SBOM. Click the row to see why it's unknown and how to retrieve the correct license.</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--cds-support-purple)"></div>
+        <div>
+          <div class="legend-title" style="color:var(--cds-support-purple)">Non-commercial</div>
+          <div class="legend-desc">CC-BY-NC, BUSL, PolyForm NC, and similar. Commercial use is restricted or prohibited — consult legal counsel.</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--cds-interactive)"></div>
+        <div>
+          <div class="legend-title" style="color:var(--cds-interactive)">Third-party</div>
+          <div class="legend-desc">External dependency identified by public ecosystem PURL (npm, PyPI, Maven, etc.).</div>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#8d8d8d"></div>
+        <div>
+          <div class="legend-title" style="color:#8d8d8d">Proprietary</div>
+          <div class="legend-desc">Likely internal or first-party — inferred from missing PURL, license type, CycloneDX metadata, or name pattern. Verify manually.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ═══ LIVE RETRIEVAL VIEW ═══════════════════════════════════════════════════ -->
+<div id="retrieve-view" style="display:none;">
+  <div class="rv-header">
+    <div>
+      <div class="rv-title">Live license retrieval</div>
+      <div class="rv-sub" id="rv-sub">Automated lookup for packages with public registry APIs</div>
+    </div>
+    <div style="display:flex;gap:1px;align-items:center;flex-wrap:wrap;">
+      <button class="btn-secondary" id="btn-retrieve-all" onclick="retrieveAll()">Retrieve all</button>
+      <button class="btn-secondary" id="btn-apply-all" onclick="applyAllRetrieved()" style="display:none;background:var(--cds-button-primary);color:var(--cds-text-on-color);">Apply all found</button>
+      <button class="btn-secondary" onclick="exportRetrievedCSV()">Export CSV</button>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="rv-privacy-note">
+    <span style="flex-shrink:0;color:var(--cds-support-info);">ℹ</span>
+    <span><strong>Limited data disclosure:</strong> Registry lookups send only the package name and version to the relevant public registry (PyPI, npm, crates.io, etc.). If a registry blocks direct browser access, two CORS proxies are tried automatically (<code style="font:var(--cds-code-01);color:var(--cds-link-primary);">allorigins.win</code>, then <code style="font:var(--cds-code-01);color:var(--cds-link-primary);">corsproxy.io</code>) — only the registry URL is forwarded, never your SBOM. All other processing remains local.</span>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="rv-progress-wrap" id="rv-progress-wrap" style="display:none;">
+    <div class="rv-progress-track">
+      <div class="rv-progress-fill" id="rv-progress-fill"></div>
+    </div>
+    <div class="rv-progress-label" id="rv-progress-label">0 / 0</div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="rv-stats" id="rv-stats">
+    <div class="rv-stat">
+      <div class="rv-stat-val" id="rv-count-total">—</div>
+      <div class="rv-stat-label">retrievable</div>
+    </div>
+    <div class="rv-stat-sep"></div>
+    <div class="rv-stat">
+      <div class="rv-stat-val" id="rv-count-found" style="color:var(--cds-support-success)">—</div>
+      <div class="rv-stat-label">found</div>
+    </div>
+    <div class="rv-stat-sep"></div>
+    <div class="rv-stat">
+      <div class="rv-stat-val" id="rv-count-notfound" style="color:var(--cds-support-caution)">—</div>
+      <div class="rv-stat-label">not found</div>
+    </div>
+    <div class="rv-stat-sep"></div>
+    <div class="rv-stat">
+      <div class="rv-stat-val" id="rv-count-error" style="color:var(--cds-support-error)">—</div>
+      <div class="rv-stat-label">errors</div>
+    </div>
+    <div class="rv-stat-sep"></div>
+    <div class="rv-stat">
+      <div class="rv-stat-val" id="rv-count-manual" style="color:var(--cds-text-secondary)">—</div>
+      <div class="rv-stat-label">manual only</div>
+    </div>
+  </div>
+
+  <!-- Ecosystem filter pills -->
+  <div class="rv-eco-filter" id="rv-eco-filter">
+    <span class="rv-filter-label">Ecosystem:</span>
+    <button class="rv-eco-btn active" data-eco="all" onclick="setEcoFilter('all', this)">All</button>
+    <button class="rv-eco-btn" data-eco="pypi" onclick="setEcoFilter('pypi', this)">PyPI</button>
+    <button class="rv-eco-btn" data-eco="npm" onclick="setEcoFilter('npm', this)">npm</button>
+    <button class="rv-eco-btn" data-eco="github" onclick="setEcoFilter('github', this)">GitHub</button>
+    <button class="rv-eco-btn" data-eco="cargo" onclick="setEcoFilter('cargo', this)">Cargo</button>
+    <button class="rv-eco-btn" data-eco="nuget" onclick="setEcoFilter('nuget', this)">NuGet</button>
+    <button class="rv-eco-btn" data-eco="manual" onclick="setEcoFilter('manual', this)" style="opacity:0.6;">Manual Only</button>
+    <div style="margin-left:auto;">
+      <input type="text" class="search-input" id="rv-search" placeholder="Search packages…" oninput="renderRetrieveTable()" style="width:200px;">
+    </div>
+  </div>
+
+  <!-- Retrieve table -->
+  <div class="rv-table-wrap">
+    <table class="rv-table">
+      <thead>
+        <tr>
+          <th style="width:32px;"><input type="checkbox" id="rv-select-all" onchange="toggleSelectAll(this)" title="Select all retrievable"></th>
+          <th onclick="sortRvTable('name')" style="cursor:pointer;">Package</th>
+          <th onclick="sortRvTable('version')" style="cursor:pointer;">Version</th>
+          <th>Ecosystem</th>
+          <th>SBOM value</th>
+          <th>Retrieved license</th>
+          <th style="width:120px;text-align:center;">Action</th>
+        </tr>
+      </thead>
+      <tbody id="rv-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Manual-only notice -->
+  <div class="rv-manual-notice" id="rv-manual-notice" style="display:none;">
+    <div style="font:var(--cds-label-01);font-weight:600;color:var(--cds-text-secondary);letter-spacing:0.02em;text-transform:uppercase;margin-bottom:var(--cds-spacing-03);">Manual investigation required</div>
+    <div id="rv-manual-list"></div>
+  </div>
+</div>
+
+<!-- ═══ AGE VIEW ══════════════════════════════════════════════════════════════ -->
+<div id="age-view" style="display:none;">
+  <div class="age-header">
+    <div>
+      <div class="age-title">Component Age Analysis</div>
+      <div class="age-sub" id="age-sub">Fetch release dates from public registries to identify outdated dependencies</div>
+    </div>
+    <div style="display:flex;gap:1px;align-items:center;flex-wrap:wrap;">
+      <button class="btn-secondary" id="btn-fetch-ages" onclick="fetchAllAges()">Fetch all ages</button>
+      <button class="btn-secondary" onclick="exportAgeCSV()">Export CSV</button>
+    </div>
+  </div>
+
+  <div class="age-privacy-note">
+    <span style="flex-shrink:0;color:var(--cds-support-info);">ℹ</span>
+    <span><strong>Limited data disclosure:</strong> Only package name and version are sent to public registries (npm, PyPI, Maven Central, crates.io, NuGet, Go proxy, GitHub) to retrieve release dates. No SBOM structure or company data is transmitted. Unsupported ecosystems (RubyGems, etc.) will show as unknown.</span>
+  </div>
+
+  <div class="age-summary-grid" id="age-summary-grid">
+    <div class="age-card fresh">
+      <div class="age-card-label">Fresh</div>
+      <div class="age-card-value fresh" id="age-count-fresh">—</div>
+      <div class="age-card-sub">&lt; 1 year old</div>
+    </div>
+    <div class="age-card aging">
+      <div class="age-card-label">Aging</div>
+      <div class="age-card-value aging" id="age-count-aging">—</div>
+      <div class="age-card-sub">1 – 2 years old</div>
+    </div>
+    <div class="age-card stale">
+      <div class="age-card-label">Stale</div>
+      <div class="age-card-value stale" id="age-count-stale">—</div>
+      <div class="age-card-sub">2 – 3 years old</div>
+    </div>
+    <div class="age-card critical-age">
+      <div class="age-card-label">Critical</div>
+      <div class="age-card-value critical-age" id="age-count-critical">—</div>
+      <div class="age-card-sub">3+ years old</div>
+    </div>
+    <div class="age-card dormant">
+      <div class="age-card-label">Dormant</div>
+      <div class="age-card-value dormant" id="age-count-dormant">—</div>
+      <div class="age-card-sub">Latest, but 3+ years old</div>
+    </div>
+    <div class="age-card eol">
+      <div class="age-card-label">EOL</div>
+      <div class="age-card-value eol" id="age-count-eol">—</div>
+      <div class="age-card-sub">End of Life / Deprecated</div>
+    </div>
+  </div>
+
+  <div class="age-stats" id="age-stats">
+    <div class="age-stat">
+      <div class="age-stat-val" id="age-stat-total">—</div>
+      <div class="age-stat-label">total</div>
+    </div>
+    <div class="age-stat-sep"></div>
+    <div class="age-stat">
+      <div class="age-stat-val" id="age-stat-fetched" style="color:var(--cds-support-success)">—</div>
+      <div class="age-stat-label">date found</div>
+    </div>
+    <div class="age-stat-sep"></div>
+    <div class="age-stat">
+      <div class="age-stat-val" id="age-stat-unknown" style="color:var(--cds-text-secondary)">—</div>
+      <div class="age-stat-label">unknown</div>
+    </div>
+    <div class="age-stat-sep"></div>
+    <div class="age-stat">
+      <div class="age-stat-val" id="age-stat-errors" style="color:var(--cds-support-error)">—</div>
+      <div class="age-stat-label">errors</div>
+    </div>
+  </div>
+
+  <div class="age-progress-wrap" id="age-progress-wrap" style="display:none;">
+    <div class="age-progress-track"><div class="age-progress-fill" id="age-progress-fill"></div></div>
+    <div class="age-progress-label" id="age-progress-label">0 / 0</div>
+  </div>
+
+  <div class="age-search-row">
+    <div class="age-filter-bar">
+      <button class="age-filter-btn active" onclick="setAgeFilter('all', this)">All</button>
+      <button class="age-filter-btn" onclick="setAgeFilter('fresh', this)" style="color:var(--cds-support-success)">Fresh</button>
+      <button class="age-filter-btn" onclick="setAgeFilter('aging', this)" style="color:var(--cds-support-warning)">Aging</button>
+      <button class="age-filter-btn" onclick="setAgeFilter('stale', this)" style="color:var(--cds-support-caution)">Stale</button>
+      <button class="age-filter-btn" onclick="setAgeFilter('critical-age', this)" style="color:var(--cds-support-error)">Critical</button>
+      <button class="age-filter-btn" onclick="setAgeFilter('dormant', this)" style="color:var(--cds-support-purple)">Dormant</button>
+      <button class="age-filter-btn" onclick="setAgeFilter('eol', this)" style="color:#da1e28">EOL</button>
+      <button class="age-filter-btn" onclick="setAgeFilter('unknown-age', this)">Unknown</button>
+    </div>
+    <input type="text" class="search-input" id="age-search" placeholder="Search packages…" oninput="renderAgeTable()" style="width:220px;">
+  </div>
+
+  <div class="age-table-wrap">
+    <table class="age-table">
+      <thead>
+        <tr>
+          <th onclick="sortAgeTable('name')" style="min-width:160px;">Package</th>
+          <th onclick="sortAgeTable('version')">Version</th>
+          <th>Ecosystem</th>
+          <th onclick="sortAgeTable('releaseDate')">Release Date</th>
+          <th onclick="sortAgeTable('ageDays')">Age</th>
+          <th onclick="sortAgeTable('latestVersion')">Latest Version</th>
+          <th onclick="sortAgeTable('latestReleaseDate')">Latest Release</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="age-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="file-input" accept=".json,.xml,.spdx,.tv,.csv,.txt">
+
+<script>
+// ─── License Database ────────────────────────────────────────────────────────
+const LICENSE_DB = {
+  // HIGH RISK - Strong copyleft
+  "GPL-1.0": { risk: "critical", short: "GPL-1.0", reason: "Strong copyleft — derivative works must be GPL-licensed; source disclosure required." },
+  "GPL-2.0": { risk: "critical", short: "GPL-2.0", reason: "Strong copyleft — all derivative works must be GPL-2.0; source code must be distributed." },
+  "GPL-3.0": { risk: "critical", short: "GPL-3.0", reason: "Strong copyleft — source disclosure required; anti-tivoization clause; patent retaliation." },
+  "AGPL-1.0": { risk: "critical", short: "AGPL-1.0", reason: "Network copyleft — source must be offered to users over a network interface." },
+  "AGPL-3.0": { risk: "critical", short: "AGPL-3.0", reason: "Network copyleft — even SaaS use triggers source disclosure requirement." },
+  "EUPL-1.0": { risk: "critical", short: "EUPL-1.0", reason: "EU Public License — copyleft with interoperability exceptions; legal jurisdiction in EU." },
+  "EUPL-1.1": { risk: "critical", short: "EUPL-1.1", reason: "EU Public License — copyleft; EU jurisdiction; source disclosure required." },
+  "EUPL-1.2": { risk: "critical", short: "EUPL-1.2", reason: "EU Public License — copyleft; compatibility with GPL-3.0 and other licenses." },
+  "OSL-3.0": { risk: "critical", short: "OSL-3.0", reason: "Open Software License — strong copyleft with attribution requirement; network use triggers disclosure." },
+  "SSPL-1.0": { risk: "critical", short: "SSPL-1.0", reason: "Server Side Public License — requires open sourcing entire service stack if offering as a service." },
+  "BUSL-1.1": { risk: "critical", short: "BUSL-1.1", reason: "Business Source License — restricts production use; commercial use prohibited until conversion date.", nonCommercial: true },
+  "CC-BY-SA-4.0": { risk: "critical", short: "CC-BY-SA", reason: "ShareAlike — derivatives must use same license; typically not suitable for software." },
+  "CC-BY-NC-4.0": { risk: "critical", short: "CC-BY-NC", reason: "NonCommercial clause — prohibits commercial use entirely.", nonCommercial: true },
+  "CC-BY-NC-SA-4.0": { risk: "critical", short: "CC-BY-NC-SA", reason: "NonCommercial + ShareAlike — prohibits commercial use; derivatives must share alike.", nonCommercial: true },
+  "CC-BY-NC-ND-4.0": { risk: "critical", short: "CC-BY-NC-ND", reason: "NonCommercial + NoDerivatives — prohibits commercial use and any modifications.", nonCommercial: true },
+  "CC-BY-NC-3.0": { risk: "critical", short: "CC-BY-NC 3.0", reason: "NonCommercial clause (v3) — prohibits commercial use entirely.", nonCommercial: true },
+  "CC-BY-NC-SA-3.0": { risk: "critical", short: "CC-BY-NC-SA 3.0", reason: "NonCommercial + ShareAlike (v3) — prohibits commercial use.", nonCommercial: true },
+  "CC-BY-NC-ND-3.0": { risk: "critical", short: "CC-BY-NC-ND 3.0", reason: "NonCommercial + NoDerivatives (v3) — prohibits commercial use.", nonCommercial: true },
+  "JRL": { risk: "critical", short: "JRL", reason: "Java Research License — non-commercial research use only.", nonCommercial: true },
+  "AFPL": { risk: "critical", short: "AFPL", reason: "Aladdin Free Public License — commercial use requires a separate commercial license.", nonCommercial: true },
+  "PolyForm-Noncommercial-1.0.0": { risk: "critical", short: "PolyForm-NC", reason: "PolyForm Noncommercial License — prohibits commercial use; personal and research use only.", nonCommercial: true },
+  "PolyForm-Small-Business-1.0.0": { risk: "critical", short: "PolyForm-SB", reason: "PolyForm Small Business License — restricts use to small businesses below revenue threshold.", nonCommercial: true },
+
+  // CAUTION - Weak copyleft
+  "LGPL-2.0": { risk: "caution", short: "LGPL-2.0", reason: "Weak copyleft — modifications to the library must be shared; dynamic linking is generally OK." },
+  "LGPL-2.1": { risk: "caution", short: "LGPL-2.1", reason: "Weak copyleft — commonly used; dynamic linking permissible; modifications must be shared." },
+  "LGPL-3.0": { risk: "caution", short: "LGPL-3.0", reason: "Weak copyleft — modifications to LGPL code must be disclosed; linked works can be proprietary." },
+  "MPL-1.0": { risk: "caution", short: "MPL-1.0", reason: "File-level copyleft — modifications to MPL files must be shared under MPL." },
+  "MPL-1.1": { risk: "caution", short: "MPL-1.1", reason: "File-level copyleft — modifications to MPL files must be shared; proprietary combination allowed." },
+  "MPL-2.0": { risk: "caution", short: "MPL-2.0", reason: "File-level copyleft — MPL file modifications must be open; compatible with GPL/LGPL." },
+  "CDDL-1.0": { risk: "caution", short: "CDDL-1.0", reason: "File-level copyleft — modifications to CDDL files must be shared; GPL incompatible." },
+  "CPL-1.0": { risk: "caution", short: "CPL-1.0", reason: "Common Public License — copyleft for modifications; patent grant included." },
+  "EPL-1.0": { risk: "caution", short: "EPL-1.0", reason: "Eclipse Public License — weak copyleft for modifications; GPL incompatible." },
+  "EPL-2.0": { risk: "caution", short: "EPL-2.0", reason: "Eclipse Public License 2.0 — weak copyleft; GPL-2.0 incompatible but optional GPL secondary license." },
+  "EUPL-2.0": { risk: "caution", short: "EUPL-2.0", reason: "EU Public License 2.0 — compatibility with other open-source licenses; some copyleft obligations." },
+  "MS-PL": { risk: "caution", short: "MS-PL", reason: "Microsoft Public License — only modifications to MS-PL files must stay MS-PL; permissive otherwise." },
+  "Ms-RL": { risk: "caution", short: "MS-RL", reason: "Microsoft Reciprocal License — copyleft for modifications; permissive for linking." },
+  "CC-BY-SA-3.0": { risk: "caution", short: "CC-BY-SA 3.0", reason: "ShareAlike — derivatives must use same license; review suitability for software." },
+
+  // OK - Permissive
+  "MIT": { risk: "ok", short: "MIT", reason: "Permissive — attribution required in source/binary distributions. No copyleft." },
+  "Apache-2.0": { risk: "ok", short: "Apache-2.0", reason: "Permissive — attribution required; explicit patent grant; patent termination clause." },
+  "BSD-2-Clause": { risk: "ok", short: "BSD-2-Clause", reason: "Permissive — attribution required in source and binary forms." },
+  "BSD-3-Clause": { risk: "ok", short: "BSD-3-Clause", reason: "Permissive — attribution required; non-endorsement clause." },
+  "BSD-4-Clause": { risk: "ok", short: "BSD-4-Clause", reason: "Permissive — advertising clause may be burdensome; attribution required." },
+  "ISC": { risk: "ok", short: "ISC", reason: "Permissive — functionally equivalent to BSD-2-Clause; attribution required." },
+  "0BSD": { risk: "ok", short: "0BSD", reason: "Permissive — near public domain; no attribution required." },
+  "Unlicense": { risk: "ok", short: "Unlicense", reason: "Public domain dedication — no restrictions whatsoever." },
+  "CC0-1.0": { risk: "ok", short: "CC0-1.0", reason: "Public domain — waives all rights; no conditions." },
+  "Zlib": { risk: "ok", short: "Zlib", reason: "Permissive — attribution required; modified versions must be clearly marked." },
+  "PSF-2.0": { risk: "ok", short: "PSF-2.0", reason: "Python Software Foundation license — permissive; attribution required." },
+  "Python-2.0": { risk: "ok", short: "Python-2.0", reason: "Permissive — similar to PSF; attribution required." },
+  "Artistic-2.0": { risk: "ok", short: "Artistic-2.0", reason: "Permissive — allows proprietary use; modifications must be clearly marked." },
+  "WTFPL": { risk: "ok", short: "WTFPL", reason: "Do what you want — essentially public domain; no restrictions." },
+  "Boost-1.0": { risk: "ok", short: "Boost-1.0", reason: "Permissive — attribution not required in binary; very permissive." },
+  "W3C": { risk: "ok", short: "W3C", reason: "Permissive — attribution required; W3C specific." },
+  "AFL-3.0": { risk: "ok", short: "AFL-3.0", reason: "Permissive — attribution required; no copyleft for combinations." },
+  "OpenSSL": { risk: "ok", short: "OpenSSL", reason: "Permissive — BSD-like; attribution in advertising materials required." },
+  "Artistic-1.0": { risk: "ok", short: "Artistic-1.0", reason: "Permissive — modifications must be clearly marked as changed." },
+};
+
+// Alias map for normalization
+const ALIASES = {
+  "gpl2": "GPL-2.0", "gpl-2": "GPL-2.0", "gnu gpl v2": "GPL-2.0", "gplv2": "GPL-2.0",
+  "gpl3": "GPL-3.0", "gpl-3": "GPL-3.0", "gnu gpl v3": "GPL-3.0", "gplv3": "GPL-3.0",
+  "agpl3": "AGPL-3.0", "agpl-3": "AGPL-3.0", "gnu agpl": "AGPL-3.0",
+  "lgpl2": "LGPL-2.0", "lgpl2.1": "LGPL-2.1", "lgpl3": "LGPL-3.0",
+  "apache 2": "Apache-2.0", "apache2": "Apache-2.0", "apache 2.0": "Apache-2.0",
+  "bsd": "BSD-3-Clause", "bsd2": "BSD-2-Clause", "bsd3": "BSD-3-Clause",
+  "mit license": "MIT", "the mit license": "MIT",
+  "mozilla public license 2.0": "MPL-2.0", "mozilla 2.0": "MPL-2.0",
+  "eclipse public license 2.0": "EPL-2.0", "eclipse public license 1.0": "EPL-1.0",
+  "cc0": "CC0-1.0", "public domain": "CC0-1.0",
+  "isc license": "ISC",
+  "python software foundation license": "PSF-2.0",
+  "server side public license": "SSPL-1.0",
+  "business source license": "BUSL-1.1",
+  // Non-commercial aliases
+  "cc-by-nc": "CC-BY-NC-4.0", "cc by nc 4.0": "CC-BY-NC-4.0", "creative commons noncommercial": "CC-BY-NC-4.0",
+  "cc-by-nc-sa": "CC-BY-NC-SA-4.0", "cc by nc sa": "CC-BY-NC-SA-4.0",
+  "cc-by-nc-nd": "CC-BY-NC-ND-4.0", "cc by nc nd": "CC-BY-NC-ND-4.0",
+  "polyform noncommercial": "PolyForm-Noncommercial-1.0.0", "polyform-nc": "PolyForm-Noncommercial-1.0.0",
+  "polyform small business": "PolyForm-Small-Business-1.0.0",
+  "aladdin free public license": "AFPL", "afpl": "AFPL",
+  "java research license": "JRL",
+};
+
+// Non-commercial keyword patterns for catching unlisted / free-text licenses
+const NC_PATTERNS = [
+  /non[- ]?commercial/i,
+  /\bnc\b/,                       // e.g. "CC BY NC"
+  /no[- ]?commercial[- ]?use/i,
+  /personal[- ]?use[- ]?only/i,
+  /research[- ]?use[- ]?only/i,
+  /not[- ]for[- ]commercial/i,
+  /evaluation[- ]?only/i,
+  /non[- ]?profit[- ]?only/i,
+  /free[- ]?for[- ]?non[- ]?commercial/i,
+  /commercial[- ]?use[- ]?prohibited/i,
+  /no[- ]?commercial[- ]?redistribution/i,
+  /academic[- ]?use[- ]?only/i,
+  /educational[- ]?use[- ]?only/i,
+  /busl/i,                        // BUSL always has commercial restrictions
+  /polyform[- ]?noncommercial/i,
+  /polyform[- ]?small[- ]?business/i,
+];
+
+/**
+ * Returns true if a license identifier or raw string indicates non-commercial restrictions.
+ * Checks: LICENSE_DB flag, SPDX id patterns, and free-text keywords.
+ */
+function isNonCommercial(licenseId) {
+  if (!licenseId) return false;
+  // Check DB flag
+  if (LICENSE_DB[licenseId]?.nonCommercial) return true;
+  // Check SPDX id itself (e.g. "CC-BY-NC-4.0" even if not in DB)
+  if (/CC-BY-NC/i.test(licenseId)) return true;
+  if (/PolyForm-Noncommercial/i.test(licenseId)) return true;
+  if (/PolyForm-Small-Business/i.test(licenseId)) return true;
+  if (/BUSL/i.test(licenseId)) return true;
+  // Check free-text patterns
+  for (const pat of NC_PATTERNS) {
+    if (pat.test(licenseId)) return true;
+  }
+  return false;
+}
+
+function normalizeLicense(raw) {
+  if (!raw || raw.trim() === '' || raw.toLowerCase() === 'unknown' || raw.toLowerCase() === 'noassertion' || raw.toLowerCase() === 'none') return null;
+  const clean = raw.trim();
+  if (LICENSE_DB[clean]) return clean;
+  const lower = clean.toLowerCase();
+  if (ALIASES[lower]) return ALIASES[lower];
+  // Try partial match
+  for (const [key] of Object.entries(LICENSE_DB)) {
+    if (lower === key.toLowerCase() || lower.includes(key.toLowerCase())) return key;
+  }
+  return clean; // Return as-is for unknown
+}
+
+function classifyLicense(id) {
+  if (!id) return { risk: "unknown", short: "UNKNOWN", reason: "No license information found in SBOM.", unknownType: "missing" };
+  const entry = LICENSE_DB[id];
+  if (entry) return entry;
+  // Check if it looks like a valid SPDX id but we just don't have it
+  if (/^[A-Z]/.test(id) && id.length < 40) {
+    return { risk: "unknown", short: id, reason: "License identifier not in database.", unknownType: "unrecognized_id" };
+  }
+  if (id.toLowerCase() === 'noassertion') {
+    return { risk: "unknown", short: "NOASSERTION", reason: "SBOM tool made no assertion about the license.", unknownType: "noassertion" };
+  }
+  if (id.toLowerCase() === 'none') {
+    return { risk: "unknown", short: "NONE", reason: "SBOM explicitly states no license was found.", unknownType: "none" };
+  }
+  return { risk: "unknown", short: id.length > 20 ? id.slice(0, 18) + '…' : id, reason: "License value present but not recognized as a known SPDX identifier.", unknownType: "unrecognized_value", rawValue: id };
+}
+
+// ─── Parsers ──────────────────────────────────────────────────────────────────
+function parseCycloneDX(data) {
+  const components = data.components || data.component || [];
+  return components.map(c => ({
+    name: c.name || c['@name'] || 'unknown',
+    version: c.version || c['@version'] || '',
+    license: extractLicenseFromComponent(c),
+    purl: c.purl || null,
+    cdxType:  c.type  || c['@type']  || null,
+    cdxScope: c.scope || c['@scope'] || null,
+    supplier: c.supplier?.name || c.manufacturer?.name || null,
+    group: c.group || null,
+  }));
+}
+
+function extractLicenseFromComponent(c) {
+  try {
+    if (c.licenses) {
+      const lic = c.licenses;
+      if (Array.isArray(lic)) {
+        const ids = lic.map(l => l.license?.id || l.license?.name || l.id || l.name || l.expression || '').filter(Boolean);
+        return ids[0] || null;
+      }
+      if (lic.license) return lic.license.id || lic.license.name || null;
+      if (lic.expression) return lic.expression;
+    }
+    if (c.license) return typeof c.license === 'string' ? c.license : (c.license.id || c.license.name || null);
+  } catch {}
+  return null;
+}
+
+function parseSPDX(data) {
+  const pkgs = data.packages || [];
+  return pkgs.map(p => {
+    const purl = (p.externalRefs || []).find(r => r.referenceType === 'purl')?.referenceLocator || null;
+    return {
+      name: p.name || p.packageName || 'unknown',
+      version: p.versionInfo || p.packageVersion || '',
+      license: p.licenseConcluded || p.licenseDeclared || null,
+      purl,
+      supplier: p.supplier || p.originator || null,
+    };
+  });
+}
+
+function parseSPDXTagValue(text) {
+  const results = [];
+  const blocks = text.split(/\n\n+/);
+  blocks.forEach(block => {
+    const lines = block.split('\n');
+    let name = '', version = '', license = '';
+    lines.forEach(line => {
+      if (line.startsWith('PackageName:')) name = line.replace('PackageName:', '').trim();
+      if (line.startsWith('PackageVersion:')) version = line.replace('PackageVersion:', '').trim();
+      if (line.startsWith('PackageLicenseConcluded:') && !license) license = line.replace('PackageLicenseConcluded:', '').trim();
+      if (line.startsWith('PackageLicenseDeclared:') && !license) license = line.replace('PackageLicenseDeclared:', '').trim();
+    });
+    if (name) results.push({ name, version, license: license || null });
+  });
+  return results;
+}
+
+function parseSimpleList(text) {
+  // Handles "package@version: License" or "package,version,license" or "package: license" etc.
+  const results = [];
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  lines.forEach(line => {
+    // CSV-like
+    const csvParts = line.split(',');
+    if (csvParts.length >= 3) {
+      results.push({ name: csvParts[0].trim(), version: csvParts[1].trim(), license: csvParts[2].trim() });
+      return;
+    }
+    // "name@version: license"
+    const colonIdx = line.indexOf(':');
+    if (colonIdx > 0) {
+      const left = line.slice(0, colonIdx).trim();
+      const license = line.slice(colonIdx + 1).trim();
+      const atIdx = left.lastIndexOf('@');
+      if (atIdx > 0) {
+        results.push({ name: left.slice(0, atIdx), version: left.slice(atIdx + 1), license });
+      } else {
+        results.push({ name: left, version: '', license });
+      }
+      return;
+    }
+    // Just a package name
+    results.push({ name: line, version: '', license: null });
+  });
+  return results;
+}
+
+function parseCycloneDXXML(xmlDoc) {
+  const components = Array.from(xmlDoc.querySelectorAll('component'));
+  return components.map(c => {
+    const name = c.querySelector(':scope > name') ? c.querySelector(':scope > name').textContent.trim() : 'unknown';
+    const version = c.querySelector(':scope > version') ? c.querySelector(':scope > version').textContent.trim() : '';
+    const purl = c.querySelector(':scope > purl') ? c.querySelector(':scope > purl').textContent.trim() : null;
+    const type = c.getAttribute('type') || null;
+    let license = null;
+    const licId = c.querySelector('licenses > license > id');
+    const licName = c.querySelector('licenses > license > name');
+    const licExpr = c.querySelector('licenses > expression');
+    if (licId) license = licId.textContent.trim();
+    else if (licExpr) license = licExpr.textContent.trim();
+    else if (licName) license = licName.textContent.trim();
+    return { name, version, license, purl, cdxType: type };
+  });
+}
+
+function parseInput(text) {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  // Try XML (CycloneDX XML)
+  if (trimmed.startsWith('<')) {
+    try {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(trimmed, 'application/xml');
+      if (!xmlDoc.querySelector('parsererror')) {
+        return parseCycloneDXXML(xmlDoc);
+      }
+    } catch (e) {}
+  }
+
+  // Try JSON
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      const data = JSON.parse(trimmed);
+      // CycloneDX
+      if (data.bomFormat === 'CycloneDX' || data.components) return parseCycloneDX(data);
+      // SPDX JSON
+      if (data.spdxVersion || data.packages) return parseSPDX(data);
+      // Array of objects
+      if (Array.isArray(data)) {
+        return data.map(d => ({
+          name: d.name || d.package || d.packageName || 'unknown',
+          version: d.version || d.versionInfo || '',
+          license: d.license || d.licenseConcluded || d.licenseDeclared || null
+        }));
+      }
+    } catch (e) {}
+  }
+
+  // SPDX tag-value
+  if (trimmed.includes('PackageName:') || trimmed.includes('SPDXVersion:')) {
+    return parseSPDXTagValue(trimmed);
+  }
+
+  // Fallback to simple list
+  return parseSimpleList(trimmed);
+}
+
+// ─── Analysis ─────────────────────────────────────────────────────────────────
+let allRows = [];
+let currentFilter = 'all';
+let sortKey = '';
+let sortDir = 1;
+
+// ── EOL/Deprecated Detection ─────────────────────────────────────────────────
+function detectEOL(pkg) {
+  // Check CycloneDX properties for deprecated/EOL markers
+  if (pkg.properties && Array.isArray(pkg.properties)) {
+    for (const prop of pkg.properties) {
+      const name = (prop.name || '').toLowerCase();
+      const value = (prop.value || '').toLowerCase();
+      
+      // Check for explicit deprecated property
+      if (name.includes('deprecated') && (value === 'true' || value === '1' || value === 'yes')) {
+        return true;
+      }
+      
+      // Check for EOL in property name or value
+      if (name.includes('eol') || name.includes('end-of-life') || name.includes('endoflife')) {
+        if (value === 'true' || value === '1' || value === 'yes') {
+          return true;
+        }
+      }
+      
+      // Check deprecation reason for EOL keywords
+      if (name.includes('deprecation') && (value.includes('eol') || value.includes('end of life') || value.includes('deprecated'))) {
+        return true;
+      }
+    }
+  }
+  
+  // Check for known EOL packages (hardcoded list for common cases)
+  const eolPackages = {
+    'log4j': ['1.2.17', '1.2.16', '1.2.15', '1.2.14', '1.2.13', '1.2.12'], // Log4j 1.x is EOL
+    'moment': ['*'], // Moment.js is in maintenance mode
+  };
+  
+  const pkgName = (pkg.name || '').toLowerCase();
+  if (eolPackages[pkgName]) {
+    const eolVersions = eolPackages[pkgName];
+    if (eolVersions.includes('*') || eolVersions.includes(pkg.version)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+function analyze(packages) {
+  allRows = packages.map((pkg, originalIdx) => {
+    const normId = normalizeLicense(pkg.license);
+    const info = classifyLicense(normId);
+    const nc = isNonCommercial(normId || pkg.license || '');
+    const ecosystem = detectEcosystem(pkg.name, pkg.purl);
+    const origin = detectOrigin(pkg, ecosystem);
+    const isEOL = detectEOL(pkg);
+    return {
+      name: pkg.name,
+      version: pkg.version || '',
+      rawLicense: pkg.license || '',
+      licenseId: normId || pkg.license || '',
+      risk: info.risk,
+      short: info.short,
+      reason: info.reason,
+      unknownType: info.unknownType || null,
+      rawValue: info.rawValue || null,
+      purl: pkg.purl || null,
+      ecosystem,
+      nc,
+      origin,
+      isEOL,
+      rawPackage: pkg, // Store raw package for age analysis
+      originalIdx, // Store original index for lookup after filtering
+    };
+  });
+
+  const total      = allRows.length;
+  const critical   = allRows.filter(r => r.risk === 'critical').length;
+  const caution    = allRows.filter(r => r.risk === 'caution').length;
+  const ok         = allRows.filter(r => r.risk === 'ok').length;
+  const unknown    = allRows.filter(r => r.risk === 'unknown').length;
+  const nc         = allRows.filter(r => r.nc).length;
+  const proprietary  = allRows.filter(r => r.origin === 'proprietary').length;
+  const thirdParty   = allRows.filter(r => r.origin === 'third-party').length;
+
+  document.getElementById('count-total').textContent = total;
+  document.getElementById('count-critical').textContent = critical;
+  document.getElementById('count-caution').textContent = caution;
+  document.getElementById('count-ok').textContent = ok;
+  document.getElementById('count-unknown').textContent = unknown;
+  document.getElementById('count-nc').textContent = nc;
+  document.getElementById('count-proprietary').textContent = proprietary;
+  document.getElementById('count-third-party').textContent = thirdParty;
+  document.getElementById('results-meta').textContent = `${currentFileName ? currentFileName + ' · ' : ''}${total} components · ${thirdParty} third-party · ${proprietary} proprietary · ${unknown} unknown · ${new Date().toLocaleTimeString()}`;
+
+  const banner = document.getElementById('unknown-banner');
+  banner.className = 'unknown-banner' + (unknown > 0 ? ' visible' : '');
+
+  const ncBanner = document.getElementById('nc-banner');
+  ncBanner.className = 'nc-banner' + (nc > 0 ? ' visible' : '');
+
+  // Show nav tabs now that we have results
+  document.getElementById('header-nav').style.display = '';
+  const unknownRetrievable = allRows.filter(r => r.risk === 'unknown' && canAutoRetrieve(r.ecosystem)).length;
+  const badge = document.getElementById('nav-badge');
+  badge.textContent = unknownRetrievable;
+  badge.style.display = unknownRetrievable > 0 ? '' : 'none';
+  // Age tab badge — count packages with fetchable age data
+  const ageFetchable = allRows.filter(r => canAutoRetrieve(r.ecosystem)).length;
+  const ageBadge = document.getElementById('age-badge');
+  if (ageBadge) { ageBadge.textContent = ageFetchable; ageBadge.style.display = ageFetchable > 0 ? '' : 'none'; }
+  // Reset age entries when new SBOM is loaded
+  ageEntries = [];
+
+  document.getElementById('results').style.display = 'block';
+  renderTable(allRows);
+}
+
+function detectEcosystem(name, purl) {
+  if (purl) {
+    if (purl.startsWith('pkg:pypi')) return 'pypi';
+    if (purl.startsWith('pkg:npm')) return 'npm';
+    if (purl.startsWith('pkg:maven')) return 'maven';
+    if (purl.startsWith('pkg:cargo')) return 'cargo';
+    if (purl.startsWith('pkg:golang') || purl.startsWith('pkg:go')) return 'go';
+    if (purl.startsWith('pkg:github') || purl.startsWith('pkg:githubactions')) return 'github';
+    if (purl.startsWith('pkg:nuget')) return 'nuget';
+    if (purl.startsWith('pkg:gem')) return 'gem';
+  }
+  if (name && (name.includes('/') || name.startsWith('@'))) return 'npm';
+  return 'unknown';
+}
+
+// ─── Origin Detection ─────────────────────────────────────────────────────────
+// Classifies each component as 'proprietary' (internal/first-party) or
+// 'third-party' (external dependency) using a multi-signal heuristic.
+//
+// Signals used (in priority order):
+//  1. CycloneDX type = 'application' with no public PURL  → likely proprietary
+//  2. License = proprietary / commercial / NOASSERTION and no public PURL → proprietary
+//  3. PURL present with public ecosystem prefix → third-party
+//  4. Supplier string contains "Unknown" or org/company name → third-party
+//  5. No version, no purl, no license, all-caps or dot-separated name → proprietary
+//  6. Name matches common internal patterns (e.g. com.myco.*, internal.*, private.*) → proprietary
+//  7. Default → third-party
+function detectOrigin(pkg, ecosystem) {
+  const name    = (pkg.name    || '').toLowerCase();
+  const purl    = (pkg.purl    || '').toLowerCase();
+  const license = (pkg.license || '').toLowerCase();
+  const supplier = (pkg.supplier || '').toLowerCase();
+  const cdxType  = (pkg.cdxType  || '').toLowerCase();
+  const group    = (pkg.group    || '').toLowerCase();
+
+  // Signal 1: has a well-known public ecosystem PURL → definitely third-party
+  const publicPurlPrefixes = [
+    'pkg:pypi', 'pkg:npm', 'pkg:maven', 'pkg:cargo', 'pkg:golang', 'pkg:go',
+    'pkg:nuget', 'pkg:gem', 'pkg:github', 'pkg:githubactions', 'pkg:composer',
+    'pkg:cocoapods', 'pkg:conda', 'pkg:hex', 'pkg:hackage', 'pkg:pub',
+  ];
+  const hasPublicPurl = publicPurlPrefixes.some(p => purl.startsWith(p));
+  if (hasPublicPurl) return 'third-party';
+
+  // Signal 2: CycloneDX type 'application' or 'container' with no public purl → proprietary
+  if ((cdxType === 'application' || cdxType === 'container') && !hasPublicPurl) return 'proprietary';
+
+  // Signal 3: proprietary / commercial license markers and no public purl
+  const proprietaryLicensePatterns = [
+    'proprietary', 'commercial', 'all rights reserved', 'confidential',
+    'internal use only', 'private', 'not open source', 'see license',
+  ];
+  if (!hasPublicPurl && proprietaryLicensePatterns.some(p => license.includes(p))) return 'proprietary';
+
+  // Signal 4: NOASSERTION / NONE with no public purl and no version → likely proprietary
+  if (!hasPublicPurl && !pkg.version && (license === 'noassertion' || license === 'none' || license === '')) {
+    return 'proprietary';
+  }
+
+  // Signal 5: name or group matches common internal naming patterns
+  const internalNamePatterns = [
+    /^(com|org|io|net|uk|de|fr)\.[a-z0-9-]+\.[a-z0-9-]+/, // reverse-domain Java/Maven
+    /internal/, /private/, /proprietary/, /custom/,
+    /core.*service/, /service.*core/,
+  ];
+  const nameAndGroup = name + ' ' + group;
+  if (!hasPublicPurl && internalNamePatterns.some(p => p.test(nameAndGroup))) return 'proprietary';
+
+  // Signal 6: supplier is empty or "NOASSERTION" → unknown but lean third-party
+  // Signal 7: default — assume third-party (conservative; avoids false proprietary labels)
+  return 'third-party';
+}
+
+
+function renderTable(rows) {
+  const tbody = document.getElementById('results-body');
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">◌</div><div class="empty-state-text">No results match the current filter</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map((row, i) => {
+    const riskLabels = { critical: 'High risk', caution: 'Caution', ok: 'Permissive', unknown: 'Unknown' };
+    const isUnknown = row.risk === 'unknown';
+    const detailsCell = isUnknown
+      ? `<td style="text-align:center"><button onclick="toggleInsight(this, ${i})" class="btn-secondary" style="height:32px;padding:0 var(--cds-spacing-04);font-size:12px;">Inspect</button></td>`
+      : `<td></td>`;
+    const ncBadge = row.nc
+      ? `<div class="nc-badge">Non-commercial</div>`
+      : '';
+    const originLabel = row.origin === 'proprietary' ? 'Proprietary' : '3rd party';
+    const originBadge = `<span class="origin-badge ${row.origin || 'third-party'}">${originLabel}</span>`;
+    const rowClass = [isUnknown ? 'has-unknown' : '', row.nc ? 'nc-row' : '', row.origin === 'proprietary' ? 'prop-row' : ''].filter(Boolean).join(' ');
+    const purlDisplay = row.purl ? ` <span style="color:var(--cds-text-secondary);font-size:11px;">[${escHtml(row.purl)}]</span>` : '';
+    return `
+      <tr class="${rowClass}" data-original-idx="${row.originalIdx}">
+        <td><div class="pkg-name">${escHtml(row.name)}${purlDisplay}</div></td>
+        <td><div class="pkg-version">${escHtml(row.version || '—')}</div></td>
+        <td><span class="license-badge ${row.risk}">${escHtml(row.short || row.licenseId || '—')}</span></td>
+        <td>${originBadge}</td>
+        <td><span class="risk-label ${row.risk}">${riskLabels[row.risk] || 'Unknown'}</span>${ncBadge}</td>
+        <td><div class="reason-text">${escHtml(row.reason)}</div></td>
+        ${detailsCell}
+      </tr>
+    `;
+  }).join('');
+}
+
+function toggleInsight(btn, idx) {
+  const tr = btn.closest('tr');
+  const existingDrawer = tr.nextElementSibling;
+  if (existingDrawer && existingDrawer.classList.contains('insight-row')) {
+    existingDrawer.remove();
+    btn.textContent = 'Inspect';
+    tr.classList.remove('expanded');
+    return;
+  }
+  // Close any other open drawers
+  document.querySelectorAll('.insight-row').forEach(r => r.remove());
+  document.querySelectorAll('tr.expanded').forEach(r => { r.classList.remove('expanded'); const b = r.querySelector('button'); if (b) b.textContent = 'Inspect'; });
+
+  // Find the row data using the original index stored in data-original-idx
+  const originalIdx = parseInt(tr.getAttribute('data-original-idx'), 10);
+  const row = allRows[originalIdx];
+  if (!row) return;
+
+  const insightHTML = buildUnknownInsight(row);
+  const newTr = document.createElement('tr');
+  newTr.className = 'insight-row';
+  newTr.innerHTML = `<td colspan="6">${insightHTML}</td>`;
+  tr.after(newTr);
+  btn.textContent = 'Close';
+  tr.classList.add('expanded');
+  newTr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function buildUnknownInsight(row) {
+  const eco = row.ecosystem;
+  const name = row.name;
+  const ver = row.version;
+  const rawLic = row.rawLicense;
+  const uType = row.unknownType;
+
+  let whyTitle, whyBody;
+  if (uType === 'missing' || !rawLic) {
+    whyTitle = 'Missing from SBOM';
+    whyBody = `The SBOM contains no license field for <strong>${escHtml(name)}</strong>. This is common when the SBOM generator could not locate license metadata — either because the package manifest omits it, the registry entry is incomplete, or the tool used didn't scan deeply enough.`;
+  } else if (uType === 'noassertion') {
+    whyTitle = 'NOASSERTION — Tool Made No Claim';
+    whyBody = `The SBOM generator explicitly wrote <code style="font-family:monospace;color:var(--cds-support-caution)">NOASSERTION</code>, meaning it found license fields but could not confidently assert a value. This often occurs with multi-license expressions, conflicting metadata, or when the tool requires human review to resolve ambiguity.`;
+  } else if (uType === 'none') {
+    whyTitle = 'NONE — Explicitly No License Found';
+    whyBody = `The SBOM states <code style="font-family:monospace;color:var(--cds-support-error)">NONE</code>. This can mean the package genuinely has no license (legally risky — all rights reserved by default) or the SBOM tool found no license files in the scanned source.`;
+  } else if (uType === 'unrecognized_id') {
+    whyTitle = 'Unrecognized SPDX Identifier';
+    whyBody = `The value <strong>${escHtml(rawLic)}</strong> looks like an SPDX ID but isn't in the standard SPDX license list. It may be a typo, a deprecated identifier, a proprietary abbreviation, or a custom license expression. The license may still be valid — it just needs verification.`;
+  } else {
+    whyTitle = 'Non-Standard License Value';
+    whyBody = `The raw license value <strong>"${escHtml(rawLic)}"</strong> is not a recognized SPDX expression. It may be a plain-text description, a URL, or proprietary notation that doesn't map to a standard identifier.`;
+  }
+
+  const howSteps = buildHowSteps(eco, name, ver, rawLic);
+  const purlSection = buildPurlSection(eco, name, ver);
+  const toolsSection = buildToolsSection(eco);
+  const safeId = safeRowId(name);
+
+  return `
+    <div class="insight-drawer">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--cds-text-secondary);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">
+        ◌ &nbsp;UNKNOWN LICENSE DIAGNOSTICS — ${escHtml(name)}${ver ? ' @ ' + escHtml(ver) : ''}
+      </div>
+      <div class="insight-grid">
+        <div class="insight-panel why">
+          <div class="insight-panel-title">⚠ Why is this license unknown?</div>
+          <div class="insight-reason"><strong>${escHtml(whyTitle)}</strong><br><br>${whyBody}</div>
+        </div>
+        <div class="insight-panel how">
+          <div class="insight-panel-title">↗ How to retrieve the license</div>
+          <ul class="insight-steps">${howSteps}</ul>
+        </div>
+        ${purlSection}
+        ${toolsSection}
+      </div>
+      <div class="retrieve-bar">
+        <button class="btn-retrieve" id="retrieve-btn-${safeId}" onclick="retrieveLicense('${safeId}', '${escHtml(name)}', '${escHtml(ver)}', '${eco}')">
+          <span class="retrieve-icon">⬇</span>
+          <div class="retrieve-spinner"></div>
+          AUTO-RETRIEVE LICENSE
+        </button>
+        <span class="retrieve-note">${canAutoRetrieve(eco) ? `Live lookup from ${ecoLabel(eco)} registry` : 'Automated lookup not available for this ecosystem — use the steps above'}</span>
+        <div class="retrieve-result" id="retrieve-result-${safeId}"></div>
+      </div>
+    </div>`;
+}
+
+function safeRowId(name) {
+  return name.replace(/[^a-zA-Z0-9]/g, '_');
+}
+
+function canAutoRetrieve(eco) {
+  return ['pypi', 'npm', 'github', 'cargo', 'nuget', 'go', 'maven'].includes(eco);
+}
+
+function ecoLabel(eco) {
+  return { pypi: 'PyPI', npm: 'npm', github: 'GitHub', cargo: 'crates.io', nuget: 'NuGet', go: 'pkg.go.dev' }[eco] || eco;
+}
+
+async function retrieveLicense(safeId, name, ver, eco) {
+  const btn = document.getElementById(`retrieve-btn-${safeId}`);
+  const resultEl = document.getElementById(`retrieve-result-${safeId}`);
+  if (!btn || !resultEl) return;
+
+  if (!canAutoRetrieve(eco)) {
+    showRetrieveResult(resultEl, 'error', '✕', 'No API', 'Automated lookup is not available for this ecosystem. Use the manual steps above.', null, null);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.classList.add('loading');
+  resultEl.className = 'retrieve-result';
+  resultEl.style.display = 'none';
+
+  try {
+    let result = null;
+
+    if (eco === 'pypi') {
+      result = await fetchPyPILicense(name, ver);
+    } else if (eco === 'npm') {
+      result = await fetchNpmLicense(name, ver);
+    } else if (eco === 'github') {
+      result = await fetchGitHubLicense(name);
+    } else if (eco === 'cargo') {
+      result = await fetchCratesLicense(name, ver);
+    } else if (eco === 'nuget') {
+      result = await fetchNuGetLicense(name, ver);
+    }
+
+    if (result && result.license) {
+      const rowName = name;
+      const row = allRows.find(r => r.name === rowName);
+      showRetrieveResult(
+        resultEl, 'success', '✓',
+        result.license,
+        `Retrieved from ${result.source}${result.homepage ? ` · <a class="insight-link" href="${result.homepage}" target="_blank">view source</a>` : ''}`,
+        result.license,
+        row
+      );
+    } else {
+      showRetrieveResult(resultEl, 'partial', '◑', 'Not Found',
+        `The ${ecoLabel(eco)} registry returned no license for this package. It may be unlisted, private, or require manual inspection.`, null, null);
+    }
+  } catch (e) {
+    const isRateLimit = e.type === 'ratelimit';
+    const isCors = e.type === 'cors';
+    const isNotFound = e.type === 'notfound';
+    let msg;
+    if (isCors) {
+      const url = manualLookupUrl(eco, name);
+      const linkHtml = url
+        ? ` <a class="insight-link" href="${url}" target="_blank">Look it up manually →</a>`
+        : '';
+      msg = `Browser was blocked by the ${ecoLabel(eco)} registry (CORS). A proxy was tried but also failed — this may be a network or firewall issue.${linkHtml}`;
+      showRetrieveResult(resultEl, 'error', '✕', 'CORS blocked', msg, null, null);
+    } else if (isRateLimit) {
+      msg = `Rate limited by ${ecoLabel(eco)} registry. Wait a moment and retry.`;
+      showRetrieveResult(resultEl, 'error', '✕', 'Rate limited', msg, null, null);
+    } else if (isNotFound) {
+      const url = manualLookupUrl(eco, name);
+      const linkHtml = url ? ` <a class="insight-link" href="${url}" target="_blank">Check registry →</a>` : '';
+      msg = `Package not found in ${ecoLabel(eco)} registry. Check the name and version.${linkHtml}`;
+      showRetrieveResult(resultEl, 'error', '✕', 'Not found', msg, null, null);
+    } else {
+      msg = e.message || 'Unknown error';
+      showRetrieveResult(resultEl, 'error', '✕', 'Lookup failed', msg, null, null);
+    }
+  }
+
+  btn.disabled = false;
+  btn.classList.remove('loading');
+}
+
+function manualLookupUrl(eco, name) {
+  const n = encodeURIComponent(name);
+  const map = {
+    pypi:   `https://pypi.org/project/${n}/`,
+    npm:    `https://www.npmjs.com/package/${name}`,
+    cargo:  `https://crates.io/crates/${n}`,
+    nuget:  `https://www.nuget.org/packages/${n}`,
+    github: `https://github.com/${name}`,
+    maven:  `https://search.maven.org/search?q=${n}`,
+    go:     `https://pkg.go.dev/${name}`,
+  };
+  return map[eco] || null;
+}
+
+function showRetrieveResult(el, type, icon, license, sourceHtml, spdxId, row) {
+  const applyBtn = spdxId && row
+    ? `<button class="btn-apply" onclick="applyRetrievedLicense('${escHtml(row.name)}', '${escHtml(spdxId)}')">Apply to SBOM</button>`
+    : '';
+  el.className = `retrieve-result ${type}`;
+  // For error/partial types, sourceHtml may contain the full message including a link
+  const licenseDisplay = type === 'error' || type === 'partial'
+    ? `<div class="result-license notfound">${escHtml(license)}</div><div class="result-source">${sourceHtml}</div>`
+    : `<div class="result-license found">${escHtml(license)}</div><div class="result-source">${sourceHtml}</div>`;
+  el.innerHTML = `
+    <div class="result-icon">${icon}</div>
+    <div class="result-body">${licenseDisplay}</div>
+    ${applyBtn}
+  `;
+  el.style.display = 'flex';
+}
+
+function applyRetrievedLicense(name, spdxId) {
+  const row = allRows.find(r => r.name === name);
+  if (!row) return;
+  const normId = normalizeLicense(spdxId) || spdxId;
+  const info = classifyLicense(normId);
+  row.licenseId = normId;
+  row.rawLicense = spdxId;
+  row.short = info.short;
+  row.risk = info.risk;
+  row.reason = info.reason;
+  row.unknownType = null;
+  row.nc = isNonCommercial(normId);
+
+  // Update summary counts
+  const unknown = allRows.filter(r => r.risk === 'unknown').length;
+  const critical = allRows.filter(r => r.risk === 'critical').length;
+  const caution = allRows.filter(r => r.risk === 'caution').length;
+  const ok = allRows.filter(r => r.risk === 'ok').length;
+  const nc = allRows.filter(r => r.nc).length;
+  document.getElementById('count-unknown').textContent = unknown;
+  document.getElementById('count-critical').textContent = critical;
+  document.getElementById('count-caution').textContent = caution;
+  document.getElementById('count-ok').textContent = ok;
+  document.getElementById('count-nc').textContent = nc;
+  document.getElementById('unknown-banner').className = 'unknown-banner' + (unknown > 0 ? ' visible' : '');
+  document.getElementById('nc-banner').className = 'nc-banner' + (nc > 0 ? ' visible' : '');
+
+  // Close all drawers and re-render
+  document.querySelectorAll('.insight-row').forEach(r => r.remove());
+  filterTable();
+  showToast(`✓ Applied ${spdxId} to ${name}${row.nc ? ' ⊘ Non-Commercial' : ''}`);
+}
+
+// ─── Registry API Fetchers ────────────────────────────────────────────────────
+// Each returns { license, source, homepage } or throws a typed ApiError
+
+class ApiError extends Error {
+  constructor(message, type) {
+    super(message);
+    this.type = type; // 'cors' | 'notfound' | 'ratelimit' | 'network' | 'parse'
+  }
+}
+
+async function safeFetch(url, opts = {}) {
+  let resp;
+  try {
+    resp = await fetch(url, { ...opts, signal: AbortSignal.timeout(10000) });
+  } catch (e) {
+    if (e.name === 'AbortError') throw new ApiError('Request timed out after 10s', 'network');
+    // TypeError usually means CORS or network failure
+    if (e instanceof TypeError) throw new ApiError('Network or CORS error — registry blocked cross-origin requests', 'cors');
+    throw new ApiError(e.message, 'network');
+  }
+  if (resp.status === 404) throw new ApiError('Package not found in registry (404)', 'notfound');
+  if (resp.status === 429) throw new ApiError('Rate limited by registry — try again in a moment', 'ratelimit');
+  if (resp.status === 403) throw new ApiError('Access denied by registry (403)', 'cors');
+  if (!resp.ok) throw new ApiError(`Registry returned HTTP ${resp.status}`, 'network');
+  try {
+    return await resp.json();
+  } catch {
+    throw new ApiError('Registry returned non-JSON response', 'parse');
+  }
+}
+
+async function safeFetchText(url, opts = {}) {
+  let resp;
+  try {
+    resp = await fetch(url, { ...opts, signal: AbortSignal.timeout(10000) });
+  } catch (e) {
+    if (e.name === 'AbortError') throw new ApiError('Request timed out after 10s', 'network');
+    if (e instanceof TypeError) throw new ApiError('Network or CORS error', 'cors');
+    throw new ApiError(e.message, 'network');
+  }
+  if (resp.status === 404) throw new ApiError('Not found (404)', 'notfound');
+  if (resp.status === 410) throw new ApiError('Gone (410)', 'notfound');
+  if (!resp.ok) throw new ApiError(`HTTP ${resp.status}`, 'network');
+  return await resp.text();
+}
+
+// CORS proxy fetch — used for registries that block direct browser requests (crates.io, NuGet).
+// Routes through allorigins.win which adds Access-Control-Allow-Origin: * to any response.
+// Only the target URL is sent — no SBOM data or company info is transmitted.
+async function corsProxyFetch(url) {
+  // Try allorigins.win first, then corsproxy.io as backup
+  const proxies = [
+    async () => {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(12000) });
+      if (!resp.ok) throw new Error(`allorigins HTTP ${resp.status}`);
+      const envelope = await resp.json();
+      if (!envelope?.contents) throw new Error('allorigins empty response');
+      return JSON.parse(envelope.contents);
+    },
+    async () => {
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+      const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(12000) });
+      if (!resp.ok) throw new Error(`corsproxy HTTP ${resp.status}`);
+      return resp.json();
+    },
+  ];
+
+  let lastErr;
+  for (const tryProxy of proxies) {
+    try {
+      return await tryProxy();
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  // Both proxies failed
+  if (lastErr?.message?.includes('404') || lastErr?.message?.includes('empty')) {
+    throw new ApiError('Package not found or proxy returned empty response', 'notfound');
+  }
+  throw new ApiError(`CORS proxy unavailable — both proxies failed (${lastErr?.message || 'unknown'})`, 'cors');
+}
+
+async function fetchPyPILicense(name, ver) {
+  // PyPI JSON API — no custom headers needed (simple request, no preflight)
+  // Proxy fallback in case of network/firewall CORS block
+  async function pypiGet(url) {
+    try {
+      return await safeFetch(url);
+    } catch (e) {
+      if (e.type === 'cors' || e.type === 'network') return await corsProxyFetch(url);
+      throw e;
+    }
+  }
+
+  let cleanVer = null;
+  if (ver) {
+    const stripped = ver.replace(/^[~^>=<! ]+/, '').split(/\s/)[0].trim();
+    if (stripped && /^\d/.test(stripped)) cleanVer = stripped;
+  }
+
+  let data;
+  if (cleanVer) {
+    try {
+      data = await pypiGet(`https://pypi.org/pypi/${encodeURIComponent(name)}/${encodeURIComponent(cleanVer)}/json`);
+    } catch (e) {
+      if (e.type === 'notfound') {
+        data = await pypiGet(`https://pypi.org/pypi/${encodeURIComponent(name)}/json`);
+      } else throw e;
+    }
+  } else {
+    data = await pypiGet(`https://pypi.org/pypi/${encodeURIComponent(name)}/json`);
+  }
+
+  const info = data.info || {};
+  // Prefer explicit license field, then classifier
+  let license = info.license?.trim() || null;
+  // Strip noise like "MIT License\nCopyright..." — take first line only
+  if (license && license.includes('\n')) license = license.split('\n')[0].trim();
+  if (license && license.length > 80) license = null; // too long = probably full text, not an id
+
+  let spdx = license ? mapToSpdx(license) : null;
+  if (!spdx && info.classifiers) {
+    const clf = info.classifiers.find(c => c.startsWith('License :: OSI Approved ::'));
+    if (clf) spdx = mapToSpdx(clf.split(' :: ').pop());
+    if (!spdx) {
+      // Try any license classifier
+      const anyCLF = info.classifiers.find(c => c.startsWith('License ::') && !c.includes('OSI') && !c.includes('DFSG'));
+      if (anyCLF) {
+        const parts = anyCLF.split(' :: ');
+        spdx = mapToSpdx(parts[parts.length - 1]);
+      }
+    }
+  }
+
+  return {
+    license: spdx || license || null,
+    source: 'PyPI',
+    homepage: info.home_page || `https://pypi.org/project/${name}/`,
+  };
+}
+
+async function fetchNpmLicense(name, ver) {
+  // npm registry — has full CORS support, but corporate proxies/firewalls often block it.
+  // Strategy: direct fetch (no custom headers to avoid preflight) → allorigins proxy → corsproxy.io
+
+  let encName;
+  if (name.startsWith('@')) {
+    const [scope, pkg] = name.slice(1).split('/');
+    encName = `@${encodeURIComponent(scope)}/${encodeURIComponent(pkg || '')}`;
+  } else {
+    encName = encodeURIComponent(name);
+  }
+
+  let cleanVer = null;
+  if (ver) {
+    const stripped = ver.replace(/^[~^>=<! ]+/, '').split(/\s/)[0].trim();
+    if (stripped && /^\d/.test(stripped)) cleanVer = stripped;
+  }
+
+  // Try direct, then proxy — captures both CORS-blocked and firewall-blocked cases
+  async function npmGet(url) {
+    try {
+      return await safeFetch(url); // no custom headers = no preflight
+    } catch (e) {
+      if (e.type === 'cors' || e.type === 'network') {
+        try {
+          return await corsProxyFetch(url);
+        } catch (pe) {
+          // Re-throw with a clearer npm-specific message
+          if (pe.type === 'cors') {
+            throw new ApiError(
+              'registry.npmjs.org is blocked by your network or firewall. ' +
+              'Both direct access and CORS proxies failed.',
+              'cors'
+            );
+          }
+          throw pe;
+        }
+      }
+      throw e;
+    }
+  }
+
+  let data = null;
+
+  if (cleanVer) {
+    try {
+      data = await npmGet(`https://registry.npmjs.org/${encName}/${encodeURIComponent(cleanVer)}`);
+    } catch (e) {
+      if (e.type !== 'notfound') throw e;
+    }
+  }
+
+  if (!data) {
+    try {
+      data = await npmGet(`https://registry.npmjs.org/${encName}/latest`);
+    } catch (e) {
+      if (e.type !== 'notfound') throw e;
+    }
+  }
+
+  if (!data) {
+    const full = await npmGet(`https://registry.npmjs.org/${encName}`);
+    const latestTag = full['dist-tags']?.latest;
+    data = latestTag ? (full.versions?.[latestTag] || full) : full;
+  }
+
+  // 4. Extract the license — npm supports: string, { type }, [{ type }], or absent
+  let license = null;
+  if (typeof data.license === 'string') {
+    license = data.license;
+  } else if (data.license && typeof data.license === 'object') {
+    license = data.license.type || data.license.name || null;
+  } else if (Array.isArray(data.licenses) && data.licenses.length > 0) {
+    license = data.licenses.map(l => (typeof l === 'string' ? l : l.type || l.name || '')).filter(Boolean).join(' OR ');
+  }
+
+  if (license) license = license.trim();
+  if (license && license.length > 120) license = null; // guard against full license text
+
+  return {
+    license: license ? mapToSpdx(license) || license : null,
+    source: 'npm',
+    homepage: data.homepage || `https://www.npmjs.com/package/${name}`,
+  };
+}
+
+
+async function fetchGitHubLicense(name) {
+  // GitHub REST API — CORS allowed for unauthenticated calls, rate limit 60/hr
+  // name format from PURL: "owner/repo" or "owner/repo/subpath" or "actions/checkout"
+  const parts = name.replace(/^github\//, '').split('/');
+  if (parts.length < 2) throw new ApiError('Cannot parse owner/repo from package name', 'parse');
+  const owner = parts[0];
+  const repo = parts[1];
+
+  // GitHub API — the versioned Accept header triggers a CORS preflight.
+  // Use no custom headers (simple request) and add proxy fallback.
+  let data;
+  try {
+    data = await safeFetch(`https://api.github.com/repos/${owner}/${repo}/license`);
+  } catch (e) {
+    if (e.type === 'cors' || e.type === 'network') {
+      try {
+        data = await corsProxyFetch(`https://api.github.com/repos/${owner}/${repo}/license`);
+      } catch {
+        throw e; // rethrow original
+      }
+    } else if (e.type === 'notfound') {
+      throw new ApiError('No license file detected by GitHub for this repository', 'notfound');
+    } else if (e.type === 'ratelimit') {
+      throw new ApiError('GitHub API rate limit reached (60 req/hr for unauthenticated). Wait a moment and retry.', 'ratelimit');
+    } else {
+      throw e;
+    }
+  }
+
+  const spdxId = data.license?.spdx_id;
+  if (!spdxId || spdxId === 'NOASSERTION') {
+    // GitHub found a license file but couldn't identify it
+    return { license: null, source: 'GitHub API', homepage: `https://github.com/${owner}/${repo}` };
+  }
+
+  return {
+    license: spdxId,
+    source: 'GitHub API',
+    homepage: `https://github.com/${owner}/${repo}`,
+  };
+}
+
+async function fetchGitHubRepoInfo(name) {
+  // GitHub REST API — fetch repository metadata including archived status
+  // name format from PURL: "owner/repo" or "owner/repo/subpath" or "actions/checkout"
+  const parts = name.replace(/^github\//, '').split('/');
+  if (parts.length < 2) throw new ApiError('Cannot parse owner/repo from package name', 'parse');
+  const owner = parts[0];
+  const repo = parts[1];
+
+  let data;
+  try {
+    data = await safeFetch(`https://api.github.com/repos/${owner}/${repo}`);
+  } catch (e) {
+    if (e.type === 'cors' || e.type === 'network') {
+      try {
+        data = await corsProxyFetch(`https://api.github.com/repos/${owner}/${repo}`);
+      } catch {
+        throw e; // rethrow original
+      }
+    } else if (e.type === 'notfound') {
+      throw new ApiError('Repository not found on GitHub', 'notfound');
+    } else if (e.type === 'ratelimit') {
+      throw new ApiError('GitHub API rate limit reached (60 req/hr for unauthenticated). Wait a moment and retry.', 'ratelimit');
+    } else {
+      throw e;
+    }
+  }
+
+  return {
+    archived: data.archived || false,
+    description: data.description || '',
+    homepage: data.html_url || `https://github.com/${owner}/${repo}`,
+    updatedAt: data.updated_at || null,
+    pushedAt: data.pushed_at || null,
+    createdAt: data.created_at || null
+  };
+}
+
+async function fetchCratesLicense(name, ver) {
+  // crates.io does NOT support CORS for browser requests (see github.com/rust-lang/crates.io/issues/2191)
+  // We try direct first (works in some environments), then fall back to a CORS proxy.
+  const headers = { 'User-Agent': 'sbom-license-analyzer/1.0' };
+
+  // Sanitise version
+  let cleanVer = null;
+  if (ver) {
+    const stripped = ver.replace(/^[~^>=<! ]+/, '').split(/\s/)[0].trim();
+    if (stripped && /^\d/.test(stripped)) cleanVer = stripped;
+  }
+
+  const baseUrl = cleanVer
+    ? `https://crates.io/api/v1/crates/${encodeURIComponent(name)}/${encodeURIComponent(cleanVer)}`
+    : `https://crates.io/api/v1/crates/${encodeURIComponent(name)}`;
+
+  // Try direct fetch first
+  let data = null;
+  try {
+    data = await safeFetch(baseUrl, { headers });
+  } catch (e) {
+    if (e.type === 'cors' || e.type === 'network') {
+      // Direct blocked — try CORS proxy
+      try {
+        data = await corsProxyFetch(baseUrl);
+      } catch (pe) {
+        // If proxy also fails on the versioned URL, try root crate via proxy
+        if (cleanVer) {
+          const rootUrl = `https://crates.io/api/v1/crates/${encodeURIComponent(name)}`;
+          data = await corsProxyFetch(rootUrl);
+        } else {
+          throw pe;
+        }
+      }
+    } else if (e.type === 'notfound' && cleanVer) {
+      // Versioned not found — try root crate
+      try {
+        data = await safeFetch(`https://crates.io/api/v1/crates/${encodeURIComponent(name)}`, { headers });
+      } catch (e2) {
+        if (e2.type === 'cors' || e2.type === 'network') {
+          data = await corsProxyFetch(`https://crates.io/api/v1/crates/${encodeURIComponent(name)}`);
+        } else throw e2;
+      }
+    } else {
+      throw e;
+    }
+  }
+
+  // Extract license — versioned endpoint puts it in data.version, root in data.versions[]
+  const license = data.version?.license
+    || data.versions?.find(v => !v.yanked && !v.num?.includes('-'))?.license
+    || data.versions?.[0]?.license
+    || data.crate?.license
+    || null;
+
+  return {
+    license: license ? mapToSpdx(license) || license : null,
+    source: 'crates.io',
+    homepage: `https://crates.io/crates/${name}`,
+  };
+}
+
+async function fetchNuGetLicense(name, ver) {
+  // NuGet — azuresearch endpoint supports CORS; registration index may not in all browsers.
+  // Try the search API first (fastest, CORS-friendly), then fall back through proxy.
+
+  // 1. NuGet search API — best CORS support
+  try {
+    const searchData = await safeFetch(
+      `https://azuresearch-usnc.nuget.org/query?q=packageid:${encodeURIComponent(name)}&take=1&prerelease=false`
+    );
+    const pkg = searchData.data?.[0];
+    if (pkg?.licenseExpression) {
+      return {
+        license: mapToSpdx(pkg.licenseExpression) || pkg.licenseExpression,
+        source: 'NuGet',
+        homepage: pkg.projectUrl || `https://www.nuget.org/packages/${name}`,
+      };
+    }
+  } catch {
+    // Search API failed — continue to registration
+  }
+
+  // 2. Registration index — try direct, fall back to proxy
+  const regUrl = `https://api.nuget.org/v3/registration5-semver1/${name.toLowerCase()}/index.json`;
+  let regData;
+  try {
+    regData = await safeFetch(regUrl);
+  } catch (e) {
+    if (e.type === 'cors' || e.type === 'network') {
+      regData = await corsProxyFetch(regUrl);
+    } else {
+      throw e;
+    }
+  }
+
+  // Flatten all catalog pages
+  let allItems = [];
+  for (const page of (regData.items || [])) {
+    if (page.items) allItems = allItems.concat(page.items);
+  }
+
+  const cleanVer = ver
+    ? ver.replace(/^[~^>=<! ]+/, '').split(/\s/)[0].trim()
+    : null;
+
+  const entry = cleanVer
+    ? allItems.find(i => i.catalogEntry?.version === cleanVer)
+    : allItems[allItems.length - 1];
+
+  const license = entry?.catalogEntry?.licenseExpression || null;
+  return {
+    license: license ? mapToSpdx(license) || license : null,
+    source: 'NuGet',
+    homepage: `https://www.nuget.org/packages/${name}`,
+  };
+}
+
+
+// Map common non-SPDX license strings to SPDX identifiers
+function mapToSpdx(raw) {
+  if (!raw) return null;
+  const clean = raw.trim();
+  // Already a valid SPDX id?
+  if (LICENSE_DB[clean]) return clean;
+  const lower = clean.toLowerCase();
+  // Check aliases
+  if (ALIASES[lower]) return ALIASES[lower];
+  // Common mappings
+  const map = {
+    'mit license': 'MIT', 'mit licence': 'MIT', 'the mit license': 'MIT',
+    'apache license 2.0': 'Apache-2.0', 'apache 2.0': 'Apache-2.0', 'apache software license': 'Apache-2.0',
+    'bsd license': 'BSD-3-Clause', 'bsd 3-clause': 'BSD-3-Clause', 'new bsd': 'BSD-3-Clause',
+    'bsd 2-clause': 'BSD-2-Clause', 'simplified bsd': 'BSD-2-Clause',
+    'gnu gpl': 'GPL-2.0', 'gnu general public license v2': 'GPL-2.0', 'gnu general public license v3': 'GPL-3.0',
+    'gnu lgpl': 'LGPL-2.1', 'gnu lesser general public license v2': 'LGPL-2.1', 'gnu lesser general public license v3': 'LGPL-3.0',
+    'mozilla public license 2.0 (mpl 2.0)': 'MPL-2.0',
+    'isc license (iscl)': 'ISC', 'isc license': 'ISC',
+    'python software foundation license': 'PSF-2.0',
+    'cc0 1.0 universal': 'CC0-1.0',
+  };
+  if (map[lower]) return map[lower];
+  // Try partial match in LICENSE_DB
+  for (const key of Object.keys(LICENSE_DB)) {
+    if (lower.includes(key.toLowerCase())) return key;
+  }
+  return null;
+}
+
+function buildHowSteps(eco, name, ver, rawLic) {
+  const steps = [];
+  const encName = encodeURIComponent(name);
+
+  if (eco === 'pypi') {
+    steps.push(`<li><span class="step-num">01</span><span>Check PyPI: <a class="insight-link" href="https://pypi.org/project/${encName}/" target="_blank">pypi.org/project/${escHtml(name)}/</a> — look for the "License" field in the project metadata sidebar.</span></li>`);
+    steps.push(`<li><span class="step-num">02</span><span>Run <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">pip show ${escHtml(name)}</code> — the <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">License:</code> field shows the declared value.</span></li>`);
+    steps.push(`<li><span class="step-num">03</span><span>Inspect the wheel/sdist: look for <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">METADATA</code>, <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">LICENSE</code>, or <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">PKG-INFO</code> inside the archive.</span></li>`);
+    steps.push(`<li><span class="step-num">04</span><span>Use <a class="insight-link" href="https://pypi.org/project/pip-licenses/" target="_blank">pip-licenses</a>: <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">pip-licenses --with-urls --format=markdown</code></span></li>`);
+  } else if (eco === 'npm') {
+    steps.push(`<li><span class="step-num">01</span><span>Check npm: <a class="insight-link" href="https://www.npmjs.com/package/${encName}" target="_blank">npmjs.com/package/${escHtml(name)}</a> — license shown in the right sidebar.</span></li>`);
+    steps.push(`<li><span class="step-num">02</span><span>Run <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">npm info ${escHtml(name)} license</code> to query the registry directly.</span></li>`);
+    steps.push(`<li><span class="step-num">03</span><span>Inspect <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">node_modules/${escHtml(name)}/package.json</code> for the <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">"license"</code> key and any LICENSE file in that directory.</span></li>`);
+    steps.push(`<li><span class="step-num">04</span><span>Use <a class="insight-link" href="https://www.npmjs.com/package/license-checker" target="_blank">license-checker</a>: <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">npx license-checker --json</code></span></li>`);
+  } else if (eco === 'maven') {
+    steps.push(`<li><span class="step-num">01</span><span>Check Maven Central: <a class="insight-link" href="https://search.maven.org/search?q=${encName}" target="_blank">search.maven.org</a> — click the artifact and view the POM for the &lt;licenses&gt; element.</span></li>`);
+    steps.push(`<li><span class="step-num">02</span><span>Inspect the POM directly: look for the <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">&lt;licenses&gt;</code> block in the project's <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">pom.xml</code>.</span></li>`);
+    steps.push(`<li><span class="step-num">03</span><span>Use <a class="insight-link" href="https://www.mojohaus.org/license-maven-plugin/" target="_blank">license-maven-plugin</a>: <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">mvn license:aggregate-third-party-report</code></span></li>`);
+  } else if (eco === 'cargo') {
+    steps.push(`<li><span class="step-num">01</span><span>Check crates.io: <a class="insight-link" href="https://crates.io/crates/${encName}" target="_blank">crates.io/crates/${escHtml(name)}</a> — license shown on the crate page.</span></li>`);
+    steps.push(`<li><span class="step-num">02</span><span>Run <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">cargo metadata --format-version 1 | jq '.packages[] | {name, license}'</code></span></li>`);
+    steps.push(`<li><span class="step-num">03</span><span>Use <a class="insight-link" href="https://github.com/EmbarkStudios/cargo-about" target="_blank">cargo-about</a> or <a class="insight-link" href="https://github.com/onur/cargo-license" target="_blank">cargo-license</a> to generate a full report.</span></li>`);
+  } else if (eco === 'go') {
+    steps.push(`<li><span class="step-num">01</span><span>Check pkg.go.dev: <a class="insight-link" href="https://pkg.go.dev/${encName}" target="_blank">pkg.go.dev/${escHtml(name)}</a> — license shown at the top of the page.</span></li>`);
+    steps.push(`<li><span class="step-num">02</span><span>Look for <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">LICENSE</code>, <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">LICENSE.md</code>, or <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">COPYING</code> in the module root on GitHub/GitLab.</span></li>`);
+    steps.push(`<li><span class="step-num">03</span><span>Use <a class="insight-link" href="https://github.com/google/go-licenses" target="_blank">go-licenses</a>: <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">go-licenses report ./...</code></span></li>`);
+  } else if (eco === 'github') {
+    steps.push(`<li><span class="step-num">01</span><span>Visit the GitHub repository — the <strong>License</strong> field is shown in the right sidebar on the repo homepage.</span></li>`);
+    steps.push(`<li><span class="step-num">02</span><span>Look for <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">LICENSE</code>, <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">LICENSE.md</code>, <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">COPYING</code>, or <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">NOTICE</code> at the repository root.</span></li>`);
+    steps.push(`<li><span class="step-num">03</span><span>Use the GitHub Licenses API: <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">GET /repos/{owner}/{repo}/license</code> — returns the SPDX ID detected by GitHub.</span></li>`);
+  } else {
+    steps.push(`<li><span class="step-num">01</span><span>Search the package registry or source repository homepage for a <strong>LICENSE</strong>, <strong>COPYING</strong>, or <strong>NOTICE</strong> file.</span></li>`);
+    steps.push(`<li><span class="step-num">02</span><span>Use <a class="insight-link" href="https://github.com/nexB/scancode-toolkit" target="_blank">ScanCode Toolkit</a>: <code style="font-family:monospace;background:var(--cds-layer-02);padding:1px 5px;color:var(--cds-link-primary)">scancode --license --json output.json ./src</code></span></li>`);
+    steps.push(`<li><span class="step-num">03</span><span>Try <a class="insight-link" href="https://clearlydefined.io/" target="_blank">ClearlyDefined.io</a> — a crowdsourced license database covering most open source packages.</span></li>`);
+    steps.push(`<li><span class="step-num">04</span><span>Regenerate the SBOM using <a class="insight-link" href="https://github.com/anchore/syft" target="_blank">Syft</a> or <a class="insight-link" href="https://github.com/CycloneDX/cdxgen" target="_blank">cdxgen</a> with deep license scanning enabled.</span></li>`);
+  }
+
+  if (rawLic && rawLic.trim() && rawLic.toLowerCase() !== 'noassertion' && rawLic.toLowerCase() !== 'none') {
+    steps.push(`<li><span class="step-num">→</span><span>The raw SBOM value is <strong>"${escHtml(rawLic)}"</strong> — search the <a class="insight-link" href="https://spdx.org/licenses/" target="_blank">SPDX license list</a> to find the correct SPDX identifier for this name.</span></li>`);
+  }
+
+  return steps.join('');
+}
+
+function buildPurlSection(eco, name, ver) {
+  const ecoTags = {
+    pypi: '<span class="insight-tag eco-pypi">PyPI</span>',
+    npm: '<span class="insight-tag eco-npm">npm</span>',
+    maven: '<span class="insight-tag eco-maven">Maven</span>',
+    cargo: '<span class="insight-tag eco-cargo">Cargo</span>',
+    go: '<span class="insight-tag eco-go">Go</span>',
+    github: '<span class="insight-tag eco-gh">GitHub</span>',
+    nuget: '<span class="insight-tag eco-maven">NuGet</span>',
+    gem: '<span class="insight-tag eco-cargo">RubyGems</span>',
+  };
+
+  let purlExample = '';
+  const encName = name.replace(/\s/g, '-');
+  if (eco === 'pypi') purlExample = `pkg:pypi/${encName}${ver ? '@' + ver : ''}`;
+  else if (eco === 'npm') purlExample = `pkg:npm/${encName}${ver ? '@' + ver : ''}`;
+  else if (eco === 'maven') purlExample = `pkg:maven/groupId/${encName}${ver ? '@' + ver : ''}`;
+  else if (eco === 'cargo') purlExample = `pkg:cargo/${encName}${ver ? '@' + ver : ''}`;
+  else if (eco === 'go') purlExample = `pkg:golang/${encName}${ver ? '@' + ver : ''}`;
+  else if (eco === 'github') purlExample = `pkg:github/${encName}${ver ? '@' + ver : ''}`;
+  else if (eco === 'nuget') purlExample = `pkg:nuget/${encName}${ver ? '@' + ver : ''}`;
+  else if (eco === 'gem') purlExample = `pkg:gem/${encName}${ver ? '@' + ver : ''}`;
+
+  const ecoTag = ecoTags[eco] || '<span class="insight-tag eco-go">Unknown ecosystem</span>';
+
+  return `<div class="insight-panel purl">
+    <div class="insight-panel-title">⬡ PURL &amp; Ecosystem</div>
+    <div class="insight-reason">Detected ecosystem: ${ecoTag}<br><br>
+    A valid PURL enables automated tools to look up license data from registries. ${purlExample ? 'Expected PURL format for this package:' : 'No PURL could be inferred — adding one enables automated license lookup.'}</div>
+    ${purlExample ? `<div class="insight-code">${escHtml(purlExample)}</div>` : ''}
+  </div>`;
+}
+
+function buildToolsSection(eco) {
+  const toolMap = {
+    pypi: [
+      { name: 'pip-licenses', url: 'https://pypi.org/project/pip-licenses/', desc: 'Lists all installed package licenses' },
+      { name: 'scancode-toolkit', url: 'https://github.com/nexB/scancode-toolkit', desc: 'Deep license detection from source files' },
+      { name: 'ClearlyDefined', url: 'https://clearlydefined.io', desc: 'Crowdsourced license and copyright data' },
+    ],
+    npm: [
+      { name: 'license-checker', url: 'https://www.npmjs.com/package/license-checker', desc: 'Scans node_modules for all licenses' },
+      { name: 'licensee', url: 'https://github.com/licensee/licensee', desc: 'Detects license from LICENSE files' },
+      { name: 'ClearlyDefined', url: 'https://clearlydefined.io', desc: 'Crowdsourced license and copyright data' },
+    ],
+    maven: [
+      { name: 'license-maven-plugin', url: 'https://www.mojohaus.org/license-maven-plugin/', desc: 'Reports licenses from POM metadata' },
+      { name: 'FOSSA', url: 'https://fossa.com', desc: 'Enterprise SCA with license analysis' },
+    ],
+    cargo: [
+      { name: 'cargo-about', url: 'https://github.com/EmbarkStudios/cargo-about', desc: 'License reports for Rust projects' },
+      { name: 'cargo-license', url: 'https://github.com/onur/cargo-license', desc: 'Lists licenses for all dependencies' },
+    ],
+    github: [
+      { name: 'GitHub Licenses API', url: 'https://docs.github.com/en/rest/licenses', desc: 'Detects license via REST API call' },
+      { name: 'Syft', url: 'https://github.com/anchore/syft', desc: 'Generates SBOM with license detection' },
+    ],
+    go: [
+      { name: 'go-licenses', url: 'https://github.com/google/go-licenses', desc: 'License report for Go modules' },
+      { name: 'ClearlyDefined', url: 'https://clearlydefined.io', desc: 'Crowdsourced license and copyright data' },
+    ],
+  };
+
+  const tools = toolMap[eco] || [
+    { name: 'Syft', url: 'https://github.com/anchore/syft', desc: 'Multi-ecosystem SBOM generator' },
+    { name: 'cdxgen', url: 'https://github.com/CycloneDX/cdxgen', desc: 'CycloneDX SBOM with license data' },
+    { name: 'scancode-toolkit', url: 'https://github.com/nexB/scancode-toolkit', desc: 'Deep license detection from source' },
+    { name: 'ClearlyDefined', url: 'https://clearlydefined.io', desc: 'Crowdsourced license and copyright data' },
+  ];
+
+  const items = tools.map(t =>
+    `<li><span class="step-num">→</span><span><a class="insight-link" href="${t.url}" target="_blank">${escHtml(t.name)}</a> — ${escHtml(t.desc)}</span></li>`
+  ).join('');
+
+  return `<div class="insight-panel tools">
+    <div class="insight-panel-title">⚙ Recommended Tools</div>
+    <ul class="insight-steps">${items}</ul>
+  </div>`;
+}
+
+function filterTable() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  let filtered = allRows;
+  if (currentFilter === 'noncommercial') {
+    filtered = filtered.filter(r => r.nc);
+  } else if (currentFilter === 'proprietary') {
+    filtered = filtered.filter(r => r.origin === 'proprietary');
+  } else if (currentFilter === 'third-party') {
+    filtered = filtered.filter(r => r.origin === 'third-party');
+  } else if (currentFilter !== 'all') {
+    filtered = filtered.filter(r => r.risk === currentFilter);
+  }
+  if (q) filtered = filtered.filter(r =>
+    r.name.toLowerCase().includes(q) ||
+    r.licenseId.toLowerCase().includes(q) ||
+    r.version.toLowerCase().includes(q)
+  );
+  renderTable(filtered);
+}
+
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterTable();
+}
+
+function sortTable(key) {
+  if (sortKey === key) sortDir *= -1;
+  else { sortKey = key; sortDir = 1; }
+  allRows.sort((a, b) => {
+    const av = (a[key] || '').toString().toLowerCase();
+    const bv = (b[key] || '').toString().toLowerCase();
+    return av < bv ? -sortDir : av > bv ? sortDir : 0;
+  });
+  filterTable();
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── Entry Points ─────────────────────────────────────────────────────────────
+
+
+
+function clearResults() {
+  allRows = [];
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('header-nav').style.display = 'none';
+  document.getElementById('header-status').textContent = 'Ready';
+  if (document.getElementById('retrieve-view'))
+    document.getElementById('retrieve-view').style.display = 'none';
+}
+
+
+function exportCSV() {
+  const rows = [['Package', 'Version', 'License', 'Risk', 'Non-Commercial', 'Origin', 'Notes']];
+  allRows.forEach(r => rows.push([r.name, r.version, r.licenseId, r.risk, r.nc ? 'YES' : 'no', r.origin || 'third-party', r.reason]));
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'sbom-license-report.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV exported');
+}
+
+// ─── File handling ────────────────────────────────────────────────────────────
+let currentFileName = ''; // Store the current SBOM filename
+
+function processFile(file) {
+  if (!file) return;
+  currentFileName = file.name; // Store the filename
+  showLoading();
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const packages = parseInput(ev.target.result);
+      if (!packages || packages.length === 0) {
+        showToast('No components found in file. Check the format.');
+        hideLoading();
+        return;
+      }
+      analyze(packages);
+    } catch (e) {
+      showToast('Could not parse file: ' + (e.message || 'unknown error'));
+    }
+    hideLoading();
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('file-input').addEventListener('change', e => {
+  processFile(e.target.files[0]);
+  e.target.value = ''; // allow re-selecting same file
+});
+
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('click', () => document.getElementById('file-input').click());
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag-over');
+  processFile(e.dataTransfer.files[0]);
+});
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function showLoading() {
+  const lb = document.getElementById('loading-bar');
+  if (lb) lb.classList.add('active');
+}
+
+function hideLoading() {
+  const lb = document.getElementById('loading-bar');
+  if (lb) lb.classList.remove('active');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+// ═══ VIEW SWITCHING ═══════════════════════════════════════════════════════════
+let currentView = 'analysis';
+
+function switchView(view, btn) {
+  currentView = view;
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+
+  const ageView = document.getElementById('age-view');
+  const retrieveView = document.getElementById('retrieve-view');
+  document.querySelector('main').style.display = 'none';
+  retrieveView.style.display = 'none';
+  if (ageView) ageView.style.display = 'none';
+
+  if (view === 'analysis') {
+    document.querySelector('main').style.display = '';
+  } else if (view === 'retrieve') {
+    retrieveView.style.display = '';
+    buildRetrieveView();
+  } else if (view === 'age') {
+    if (ageView) { ageView.style.display = ''; buildAgeView(); }
+  }
+}
+
+// ═══ RETRIEVE VIEW STATE ══════════════════════════════════════════════════════
+// Each entry: { row (allRows ref), status, retrievedLicense, source, applied }
+let rvEntries = [];
+let rvSortKey = 'name';
+let rvSortDir = 1;
+let rvEcoFilter = 'all';
+let rvRetrieving = false;
+
+function buildRetrieveView() {
+  // Build rvEntries from all unknown rows in allRows
+  const unknownRows = allRows.filter(r => r.risk === 'unknown');
+  rvEntries = unknownRows.map(row => ({
+    row,
+    status: canAutoRetrieve(row.ecosystem) ? 'pending' : 'manual',
+    retrievedLicense: null,
+    source: null,
+    homepage: null,
+    selected: canAutoRetrieve(row.ecosystem),
+  }));
+
+  updateRvStats();
+  renderRetrieveTable();
+  buildManualNotice();
+
+  // Update nav badge
+  const retrievable = rvEntries.filter(e => canAutoRetrieve(e.row.ecosystem)).length;
+  const badge = document.getElementById('nav-badge');
+  badge.textContent = retrievable;
+  badge.style.display = retrievable > 0 ? '' : 'none';
+
+  document.getElementById('rv-sub').textContent =
+    `${retrievable} packages retrievable via public API · ${rvEntries.filter(e => !canAutoRetrieve(e.row.ecosystem)).length} require manual lookup`;
+}
+
+function updateRvStats() {
+  const retrievable = rvEntries.filter(e => e.status !== 'manual');
+  document.getElementById('rv-count-total').textContent = retrievable.length || '—';
+  document.getElementById('rv-count-found').textContent = rvEntries.filter(e => e.status === 'found' || e.status === 'applied').length || '—';
+  document.getElementById('rv-count-notfound').textContent = rvEntries.filter(e => e.status === 'notfound').length || '—';
+  document.getElementById('rv-count-error').textContent = rvEntries.filter(e => e.status === 'error').length || '—';
+  document.getElementById('rv-count-manual').textContent = rvEntries.filter(e => e.status === 'manual').length || '—';
+
+  const hasFound = rvEntries.some(e => (e.status === 'found') && !e.row._applied);
+  document.getElementById('btn-apply-all').style.display = hasFound ? '' : 'none';
+}
+
+function setEcoFilter(eco, btn) {
+  rvEcoFilter = eco;
+  document.querySelectorAll('.rv-eco-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRetrieveTable();
+}
+
+function sortRvTable(key) {
+  if (rvSortKey === key) rvSortDir *= -1;
+  else { rvSortKey = key; rvSortDir = 1; }
+  renderRetrieveTable();
+}
+
+function toggleSelectAll(checkbox) {
+  const visible = getVisibleEntries();
+  visible.forEach(e => { if (canAutoRetrieve(e.row.ecosystem)) e.selected = checkbox.checked; });
+  renderRetrieveTable();
+}
+
+function toggleEntry(name, checkbox) {
+  const entry = rvEntries.find(e => e.row.name === name);
+  if (entry) entry.selected = checkbox.checked;
+}
+
+function getVisibleEntries() {
+  const q = (document.getElementById('rv-search')?.value || '').toLowerCase();
+  let entries = [...rvEntries];
+
+  if (rvEcoFilter !== 'all') {
+    if (rvEcoFilter === 'manual') {
+      entries = entries.filter(e => !canAutoRetrieve(e.row.ecosystem));
+    } else {
+      entries = entries.filter(e => e.row.ecosystem === rvEcoFilter);
+    }
+  }
+  if (q) entries = entries.filter(e =>
+    e.row.name.toLowerCase().includes(q) ||
+    (e.row.version || '').toLowerCase().includes(q) ||
+    (e.row.rawLicense || '').toLowerCase().includes(q)
+  );
+
+  entries.sort((a, b) => {
+    const av = (rvSortKey === 'version' ? a.row.version : a.row.name) || '';
+    const bv = (rvSortKey === 'version' ? b.row.version : b.row.name) || '';
+    return av < bv ? -rvSortDir : av > bv ? rvSortDir : 0;
+  });
+
+  return entries;
+}
+
+function renderRetrieveTable() {
+  const tbody = document.getElementById('rv-body');
+  if (!tbody) return;
+  const entries = getVisibleEntries();
+
+  if (entries.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">◌</div><div class="empty-state-text">No packages match the current filter</div></div></td></tr>`;
+    return;
+  }
+
+  const ecoTagMap = {
+    pypi:   '<span class="insight-tag eco-pypi">PyPI</span>',
+    npm:    '<span class="insight-tag eco-npm">npm</span>',
+    maven:  '<span class="insight-tag eco-maven">Maven</span>',
+    cargo:  '<span class="insight-tag eco-cargo">Cargo</span>',
+    go:     '<span class="insight-tag eco-go">Go</span>',
+    github: '<span class="insight-tag eco-gh">GitHub</span>',
+    nuget:  '<span class="insight-tag eco-maven">NuGet</span>',
+    gem:    '<span class="insight-tag eco-cargo">Gems</span>',
+  };
+
+  tbody.innerHTML = entries.map(entry => {
+    const { row, status, retrievedLicense, source, homepage } = entry;
+    const isRetrievable = canAutoRetrieve(row.ecosystem);
+    const ecoTag = ecoTagMap[row.ecosystem] || `<span class="insight-tag eco-go">${escHtml(row.ecosystem)}</span>`;
+    const safeId = safeRowId(row.name);
+
+    const statusDot = `<span class="rv-status-dot ${status}"></span>`;
+    const statusText = { pending: 'Pending', loading: 'Fetching…', found: 'Found', notfound: 'Not found', error: 'Error', applied: 'Applied', manual: 'Manual only' }[status] || status;
+
+    let licenseCell = '';
+    if (status === 'pending') licenseCell = `<span class="rv-license-pending">—</span>`;
+    else if (status === 'loading') licenseCell = `<span class="rv-license-pending">Fetching…</span>`;
+    else if (status === 'found') licenseCell = `<span class="rv-license-found">${escHtml(retrievedLicense)}</span>${source ? `<div style="font-size:10px;color:var(--cds-text-secondary);margin-top:2px;">via ${escHtml(source)}${homepage ? ` · <a class="insight-link" href="${homepage}" target="_blank">↗</a>` : ''}</div>` : ''}`;
+    else if (status === 'applied') licenseCell = `<span class="rv-license-applied">✓ ${escHtml(retrievedLicense)}</span><div style="font-size:10px;color:var(--cds-link-primary);margin-top:2px;">Applied to SBOM</div>`;
+    else if (status === 'notfound') licenseCell = `<span class="rv-license-notfound">Not in registry</span>`;
+    else if (status === 'error') {
+      const errMsg = entry.errorMsg || 'API error';
+      const errType = entry.errorType || 'network';
+      const isCorsErr = errType === 'cors';
+      const errColor = errType === 'ratelimit' ? 'var(--cds-support-caution)' : isCorsErr ? 'var(--cds-support-warning)' : 'var(--cds-support-error)';
+      const errIcon = errType === 'ratelimit' ? '⏱' : isCorsErr ? '⛔' : errType === 'notfound' ? '◌' : '✕';
+      const registryUrl = manualLookupUrl(row.ecosystem, row.name);
+      const registryLink = registryUrl
+        ? ` <a class="insight-link" href="${registryUrl}" target="_blank">Look up manually →</a>`
+        : '';
+      const shortMsg = isCorsErr ? 'CORS blocked — proxy also failed' : escHtml(errMsg);
+      licenseCell = `<div style="color:${errColor};font:var(--cds-label-01);">${errIcon} ${shortMsg}${registryLink}</div>`;
+    }
+    else if (status === 'manual') licenseCell = `<span class="rv-license-pending" style="color:var(--cds-text-secondary);">Manual lookup required</span>`;
+
+    let actionCell = '';
+    if (!isRetrievable) {
+      actionCell = `<span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--cds-text-secondary);">N/A</span>`;
+    } else if (status === 'applied') {
+      actionCell = `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--cds-link-primary);">✓ Done</span>`;
+    } else if (status === 'found') {
+      actionCell = `
+        <div class="rv-action-cell">
+          <button class="btn-rv-single btn-rv-fetch" onclick="retrieveSingle('${safeId}', '${escHtml(row.name)}', '${escHtml(row.version || '')}', '${row.ecosystem}')">↺ Retry</button>
+          <button class="btn-rv-single btn-rv-apply" onclick="applySingleRv('${escHtml(row.name)}')">✓ Apply</button>
+        </div>`;
+    } else if (status === 'error') {
+      actionCell = `
+        <div class="rv-action-cell">
+          <button class="btn-rv-single btn-rv-fetch" onclick="retrieveSingle('${safeId}', '${escHtml(row.name)}', '${escHtml(row.version || '')}', '${row.ecosystem}')">↺ Retry</button>
+        </div>`;
+    } else {
+      actionCell = `
+        <div class="rv-action-cell">
+          <button class="btn-rv-single btn-rv-fetch" id="rvbtn-${safeId}" onclick="retrieveSingle('${safeId}', '${escHtml(row.name)}', '${escHtml(row.version || '')}', '${row.ecosystem}')" ${status === 'loading' ? 'disabled' : ''}>
+            ${status === 'loading' ? '…' : '⬇ Fetch'}
+          </button>
+        </div>`;
+    }
+
+    const purlDisplay = row.purl ? ` <span style="color:var(--cds-text-secondary);font-size:10px;">[${escHtml(row.purl)}]</span>` : '';
+    return `<tr class="rv-${status}" id="rvrow-${safeId}">
+      <td><input type="checkbox" ${entry.selected ? 'checked' : ''} ${!isRetrievable ? 'disabled' : ''} onchange="toggleEntry('${escHtml(row.name)}', this)"></td>
+      <td><div class="rv-pkg-name">${escHtml(row.name)}${purlDisplay}</div></td>
+      <td><div class="rv-pkg-ver">${escHtml(row.version || '—')}</div></td>
+      <td>${ecoTag}</td>
+      <td><div class="rv-raw-val" title="${escHtml(row.rawLicense || 'none')}">${escHtml(row.rawLicense || '—')}</div></td>
+      <td>${licenseCell}</td>
+      <td>${actionCell}</td>
+    </tr>`;
+  }).join('');
+}
+
+function buildManualNotice() {
+  const manuals = rvEntries.filter(e => !canAutoRetrieve(e.row.ecosystem));
+  const notice = document.getElementById('rv-manual-notice');
+  const list = document.getElementById('rv-manual-list');
+  if (manuals.length === 0) { notice.style.display = 'none'; return; }
+
+  const ecoLinks = {
+    maven: (name) => `https://search.maven.org/search?q=${encodeURIComponent(name)}`,
+    go: (name) => `https://pkg.go.dev/${encodeURIComponent(name)}`,
+    gem: (name) => `https://rubygems.org/gems/${encodeURIComponent(name)}`,
+  };
+
+  list.innerHTML = manuals.map(e => {
+    const link = ecoLinks[e.row.ecosystem]?.(e.row.name);
+    return `<div class="rv-manual-chip">
+      <span style="color:var(--cds-text-secondary);font:var(--cds-label-01);">${escHtml(e.row.ecosystem || '?')}</span>
+      <span>${escHtml(e.row.name)}${e.row.version ? ' @ ' + escHtml(e.row.version) : ''}</span>
+      ${link ? `<a class="insight-link" href="${link}" target="_blank">↗ Lookup</a>` : ''}
+    </div>`;
+  }).join('');
+  notice.style.display = '';
+}
+
+// ── Individual fetch ──────────────────────────────────────────────────────────
+async function retrieveSingle(safeId, name, ver, eco) {
+  const entry = rvEntries.find(e => e.row.name === name);
+  if (!entry) return;
+
+  entry.status = 'loading';
+  renderRetrieveTable();
+
+  try {
+    let result = null;
+    if (eco === 'pypi') result = await fetchPyPILicense(name, ver);
+    else if (eco === 'npm') result = await fetchNpmLicense(name, ver);
+    else if (eco === 'github') result = await fetchGitHubLicense(name);
+    else if (eco === 'cargo') result = await fetchCratesLicense(name, ver);
+    else if (eco === 'nuget') result = await fetchNuGetLicense(name, ver);
+
+    if (result?.license) {
+      entry.status = 'found';
+      entry.retrievedLicense = result.license;
+      entry.source = result.source;
+      entry.homepage = result.homepage;
+    } else {
+      entry.status = 'notfound';
+    }
+  } catch (e) {
+    entry.status = 'error';
+    entry.errorMsg = e.message || 'Unknown error';
+    entry.errorType = e.type || 'network';
+  }
+}
+
+// ── Apply single ──────────────────────────────────────────────────────────────
+function applySingleRv(name) {
+  const entry = rvEntries.find(e => e.row.name === name);
+  if (!entry || !entry.retrievedLicense) return;
+  applyRetrievedLicense(name, entry.retrievedLicense);
+  entry.status = 'applied';
+  updateRvStats();
+  renderRetrieveTable();
+}
+
+// ── Retrieve all selected ─────────────────────────────────────────────────────
+async function retrieveAll() {
+  if (rvRetrieving) return;
+  const toFetch = rvEntries.filter(e => e.selected && canAutoRetrieve(e.row.ecosystem) && e.status !== 'applied');
+  if (toFetch.length === 0) { showToast('No packages selected for retrieval.'); return; }
+
+  rvRetrieving = true;
+  document.getElementById('btn-retrieve-all').disabled = true;
+  document.getElementById('rv-progress-wrap').style.display = '';
+  document.getElementById('rv-progress-fill').style.width = '0%';
+  document.getElementById('rv-progress-label').textContent = `0 / ${toFetch.length}`;
+
+  for (let i = 0; i < toFetch.length; i++) {
+    const entry = toFetch[i];
+    const pct = Math.round((i / toFetch.length) * 100);
+    document.getElementById('rv-progress-fill').style.width = pct + '%';
+    document.getElementById('rv-progress-label').textContent = `${i} / ${toFetch.length}`;
+    document.getElementById('header-status').textContent = `Fetching ${i+1}/${toFetch.length}`;
+
+    entry.status = 'loading';
+    renderRetrieveTable();
+
+    try {
+      const { row } = entry;
+      let result = null;
+      if (row.ecosystem === 'pypi') result = await fetchPyPILicense(row.name, row.version);
+      else if (row.ecosystem === 'npm') result = await fetchNpmLicense(row.name, row.version);
+      else if (row.ecosystem === 'github') result = await fetchGitHubLicense(row.name);
+      else if (row.ecosystem === 'cargo') result = await fetchCratesLicense(row.name, row.version);
+      else if (row.ecosystem === 'nuget') result = await fetchNuGetLicense(row.name, row.version);
+
+      if (result?.license) {
+        entry.status = 'found';
+        entry.retrievedLicense = result.license;
+        entry.source = result.source;
+        entry.homepage = result.homepage;
+      } else {
+        entry.status = 'notfound';
+      }
+    } catch (e) {
+      entry.status = 'error';
+      entry.errorMsg = e.message || 'Unknown error';
+      entry.errorType = e.type || 'network';
+    }
+
+    // Small delay to avoid hammering APIs
+    await new Promise(r => setTimeout(r, 120));
+  }
+
+  document.getElementById('rv-progress-fill').style.width = '100%';
+  document.getElementById('rv-progress-label').textContent = `${toFetch.length} / ${toFetch.length}`;
+  document.getElementById('header-status').textContent = 'Done';
+  setTimeout(() => {
+    document.getElementById('rv-progress-wrap').style.display = 'none';
+    document.getElementById('header-status').textContent = 'Ready';
+  }, 1500);
+
+  rvRetrieving = false;
+  document.getElementById('btn-retrieve-all').disabled = false;
+  updateRvStats();
+  renderRetrieveTable();
+
+  const found = rvEntries.filter(e => e.status === 'found').length;
+  showToast(`✓ Retrieved ${found} of ${toFetch.length} licenses`);
+}
+
+// ── Apply all found ───────────────────────────────────────────────────────────
+function applyAllRetrieved() {
+  const toApply = rvEntries.filter(e => e.status === 'found' && e.retrievedLicense);
+  toApply.forEach(entry => {
+    applyRetrievedLicense(entry.row.name, entry.retrievedLicense);
+    entry.status = 'applied';
+  });
+  updateRvStats();
+  renderRetrieveTable();
+  showToast(`✓ Applied ${toApply.length} licenses to SBOM`);
+}
+
+// ── Export CSV ────────────────────────────────────────────────────────────────
+function exportRetrievedCSV() {
+  const rows = [['Package', 'Version', 'Ecosystem', 'SBOM Value', 'Retrieved License', 'Source', 'Status']];
+  rvEntries.forEach(e => {
+    rows.push([
+      e.row.name, e.row.version, e.row.ecosystem,
+      e.row.rawLicense || '', e.retrievedLicense || '', e.source || '', e.status
+    ]);
+  });
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'license-retrieval-report.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV exported');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AGE VIEW
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let ageEntries = [];
+let ageSortKey = 'ageDays';
+let ageSortDir = -1;  // default: oldest first
+let ageFilter = 'all';
+let ageFetching = false;
+
+function buildAgeView() {
+  if (ageEntries.length === 0) {
+    // Build entries from allRows
+    ageEntries = allRows.map(row => ({
+      row,
+      status: canAutoRetrieve(row.ecosystem) ? 'pending' : 'unsupported',
+      releaseDate: null,
+      ageDays: null,
+      ageBand: null,
+      latestVersion: null,
+      latestReleaseDate: null,
+      latestAgeDays: null,
+      isAtLatest: false,
+      isEOL: row.isEOL || false, // Use EOL flag from SBOM analysis
+      error: null,
+    }));
+  }
+  updateAgeStats();
+  renderAgeTable();
+}
+
+function classifyAgeBand(days, latestAgeDays, isAtLatest, isEOL) {
+  if (days === null || days === undefined) return 'unknown-age';
+  
+  // EOL takes highest priority
+  if (isEOL) return 'eol';
+  
+  // Dormant: at latest version but latest release is >36 months old
+  if (isAtLatest && latestAgeDays !== null && latestAgeDays >= 365 * 3) {
+    return 'dormant';
+  }
+  
+  // Standard age bands
+  if (days < 365)        return 'fresh';
+  if (days < 365 * 2)   return 'aging';
+  if (days < 365 * 3)   return 'stale';
+  return 'critical-age';
+}
+
+function ageBandLabel(band) {
+  return {
+    fresh: 'Fresh',
+    aging: 'Aging',
+    stale: 'Stale',
+    'critical-age': 'Critical',
+    dormant: 'Dormant',
+    eol: 'EOL',
+    'unknown-age': 'Unknown'
+  }[band] || '—';
+}
+
+function formatAge(days) {
+  if (days === null || days === undefined) return '—';
+  if (days < 30)   return `${days}d`;
+  if (days < 365)  return `${Math.floor(days / 30)}mo`;
+  const yrs = (days / 365).toFixed(1);
+  return `${yrs}yr`;
+}
+
+function updateAgeStats() {
+  const total   = ageEntries.length;
+  const fetched = ageEntries.filter(e => e.status === 'done').length;
+  const unknown = ageEntries.filter(e => e.status === 'unsupported' || e.status === 'notfound').length;
+  const errors  = ageEntries.filter(e => e.status === 'error').length;
+
+  const fresh    = ageEntries.filter(e => e.ageBand === 'fresh').length;
+  const aging    = ageEntries.filter(e => e.ageBand === 'aging').length;
+  const stale    = ageEntries.filter(e => e.ageBand === 'stale').length;
+  const critical = ageEntries.filter(e => e.ageBand === 'critical-age').length;
+  const dormant  = ageEntries.filter(e => e.ageBand === 'dormant').length;
+  const eol      = ageEntries.filter(e => e.ageBand === 'eol').length;
+  const archived = ageEntries.filter(e => e.archivedRepo === true).length;
+
+  const g = id => document.getElementById(id);
+  g('age-count-fresh').textContent    = fresh    || '—';
+  g('age-count-aging').textContent    = aging    || '—';
+  g('age-count-stale').textContent    = stale    || '—';
+  g('age-count-critical').textContent = critical || '—';
+  g('age-count-dormant').textContent  = dormant  || '—';
+  // Show archived count in EOL badge if there are archived repos
+  if (archived > 0) {
+    g('age-count-eol').textContent = `${eol} (${archived} archived)`;
+    g('age-count-eol').title = `${eol} total EOL packages, including ${archived} archived repositories`;
+  } else {
+    g('age-count-eol').textContent = eol || '—';
+    g('age-count-eol').title = '';
+  }
+  g('age-stat-total').textContent   = total   || '—';
+  g('age-stat-fetched').textContent  = fetched  || '—';
+  g('age-stat-unknown').textContent  = unknown  || '—';
+  g('age-stat-errors').textContent   = errors   || '—';
+}
+
+function setAgeFilter(filter, btn) {
+  ageFilter = filter;
+  document.querySelectorAll('.age-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAgeTable();
+}
+
+function sortAgeTable(key) {
+  if (ageSortKey === key) ageSortDir *= -1;
+  else { ageSortKey = key; ageSortDir = 1; }
+  renderAgeTable();
+}
+
+function renderAgeTable() {
+  const q = (document.getElementById('age-search')?.value || '').toLowerCase();
+
+  let entries = [...ageEntries];
+
+  if (ageFilter !== 'all') {
+    entries = entries.filter(e => e.ageBand === ageFilter ||
+      (ageFilter === 'unknown-age' && (e.ageBand === 'unknown-age' || !e.ageBand)));
+  }
+
+  if (q) {
+    entries = entries.filter(e =>
+      e.row.name.toLowerCase().includes(q) ||
+      (e.row.version || '').toLowerCase().includes(q) ||
+      (e.row.ecosystem || '').toLowerCase().includes(q)
+    );
+  }
+
+  // Sort
+  entries.sort((a, b) => {
+    let av, bv;
+    if (ageSortKey === 'ageDays') {
+      av = a.ageDays ?? (ageSortDir > 0 ? Infinity : -Infinity);
+      bv = b.ageDays ?? (ageSortDir > 0 ? Infinity : -Infinity);
+      return (av - bv) * ageSortDir;
+    }
+    if (ageSortKey === 'releaseDate') {
+      av = a.releaseDate || '';
+      bv = b.releaseDate || '';
+    } else if (ageSortKey === 'latestReleaseDate') {
+      av = a.latestReleaseDate || '';
+      bv = b.latestReleaseDate || '';
+    } else if (ageSortKey === 'latestVersion') {
+      av = a.latestVersion || '';
+      bv = b.latestVersion || '';
+    } else if (ageSortKey === 'version') {
+      av = a.row.version || '';
+      bv = b.row.version || '';
+    } else {
+      av = a.row[ageSortKey] || '';
+      bv = b.row[ageSortKey] || '';
+    }
+    return av < bv ? -ageSortDir : av > bv ? ageSortDir : 0;
+  });
+
+  const tbody = document.getElementById('age-body');
+  if (!tbody) return;
+
+  if (entries.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">◌</div><div class="empty-state-text">No results match the current filter</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = entries.map(e => {
+    const row = e.row;
+    const band = e.ageBand || 'unknown-age';
+    const eco = row.ecosystem || 'unknown';
+    const ecoTagMap = {
+      pypi: 'eco-pypi', npm: 'eco-npm', cargo: 'eco-cargo',
+      nuget: 'eco-maven', github: 'eco-gh', maven: 'eco-maven',
+      go: 'eco-go', gem: 'eco-cargo'
+    };
+    const ecoTag = `<span class="insight-tag ${ecoTagMap[eco] || ''}" style="font-size:10px;">${escHtml(eco)}</span>`;
+
+    let statusCell = '';
+    if (e.status === 'pending') {
+      statusCell = `<span style="color:var(--cds-text-placeholder);font:var(--cds-label-01);">Pending</span>`;
+    } else if (e.status === 'loading') {
+      statusCell = `<span style="color:var(--cds-text-secondary);font:var(--cds-label-01);">Fetching…</span>`;
+    } else if (e.status === 'done') {
+      // Special handling for archived repositories
+      if (e.archivedRepo && band === 'eol') {
+        statusCell = `<span class="age-badge-pill ${band}" title="Archived GitHub Repository" style="display:inline-flex;align-items:center;gap:4px;">📦 Archived</span>`;
+      } else {
+        statusCell = `<span class="age-badge-pill ${band}">${ageBandLabel(band)}</span>`;
+      }
+    } else if (e.status === 'error') {
+      statusCell = `<span style="color:var(--cds-support-error);font:var(--cds-label-01);" title="${escHtml(e.error || '')}">✕ Error</span>`;
+    } else if (e.status === 'notfound') {
+      statusCell = `<span style="color:var(--cds-support-caution);font:var(--cds-label-01);">Not found</span>`;
+    } else if (e.status === 'unsupported') {
+      statusCell = `<span style="color:var(--cds-text-placeholder);font:var(--cds-label-01);">Unsupported ecosystem</span>`;
+    }
+
+    const dateCell = e.releaseDate
+      ? `<span style="font:var(--cds-code-01);color:var(--cds-text-primary);">${escHtml(e.releaseDate)}</span>`
+      : `<span style="color:var(--cds-text-placeholder);">—</span>`;
+
+    const ageCell = e.ageDays !== null
+      ? `<span style="font:var(--cds-code-01);color:${band === 'critical-age' ? 'var(--cds-support-error)' : band === 'stale' ? 'var(--cds-support-caution)' : band === 'aging' ? 'var(--cds-support-warning)' : 'var(--cds-support-success)'};">${formatAge(e.ageDays)}</span>`
+      : `<span style="color:var(--cds-text-placeholder);">—</span>`;
+
+    // Latest version — highlight if different from current
+    const currentClean = (row.version || '').replace(/^[~^>=<! ]+/, '').split(/\s/)[0].trim();
+    const isOutdated = e.latestVersion && currentClean && e.latestVersion !== currentClean;
+    const latestVerCell = e.latestVersion
+      ? `<span style="font:var(--cds-code-01);color:${isOutdated ? 'var(--cds-support-warning)' : 'var(--cds-text-secondary)'};">${escHtml(e.latestVersion)}${isOutdated ? ' ↑' : ''}</span>`
+      : `<span style="color:var(--cds-text-placeholder);">—</span>`;
+
+    const latestDateCell = e.latestReleaseDate
+      ? `<span style="font:var(--cds-code-01);color:var(--cds-text-secondary);">${escHtml(e.latestReleaseDate)}</span>`
+      : `<span style="color:var(--cds-text-placeholder);">—</span>`;
+
+    const purlDisplay = row.purl ? ` <span style="color:var(--cds-text-secondary);font-size:11px;">[${escHtml(row.purl)}]</span>` : '';
+    return `<tr>
+      <td><div class="pkg-name">${escHtml(row.name)}${purlDisplay}</div></td>
+      <td><div class="pkg-version">${escHtml(row.version || '—')}</div></td>
+      <td>${ecoTag}</td>
+      <td>${dateCell}</td>
+      <td>${ageCell}</td>
+      <td>${latestVerCell}</td>
+      <td>${latestDateCell}</td>
+      <td>${statusCell}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Fetch all ages ────────────────────────────────────────────────────────────
+async function fetchAllAges() {
+  if (ageFetching) return;
+  const toFetch = ageEntries.filter(e => e.status === 'pending' || e.status === 'error');
+  if (toFetch.length === 0) { showToast('Nothing to fetch — all supported packages already processed.'); return; }
+
+  ageFetching = true;
+  document.getElementById('btn-fetch-ages').disabled = true;
+  document.getElementById('age-progress-wrap').style.display = '';
+  document.getElementById('age-progress-fill').style.width = '0%';
+  document.getElementById('age-progress-label').textContent = `0 / ${toFetch.length}`;
+
+  for (let i = 0; i < toFetch.length; i++) {
+    const entry = toFetch[i];
+    const pct = Math.round((i / toFetch.length) * 100);
+    document.getElementById('age-progress-fill').style.width = pct + '%';
+    document.getElementById('age-progress-label').textContent = `${i} / ${toFetch.length}`;
+    document.getElementById('header-status').textContent = `Age ${i+1}/${toFetch.length}`;
+
+    entry.status = 'loading';
+    renderAgeTable();
+
+    try {
+      const result = await fetchReleaseDateAndLatest(entry.row.ecosystem, entry.row.name, entry.row.version);
+      if (result && result.releaseDate) {
+        const parsed = new Date(result.releaseDate);
+        const days = Math.floor((Date.now() - parsed.getTime()) / 86400000);
+        entry.releaseDate = parsed.toISOString().slice(0, 10);
+        entry.ageDays = days;
+        
+        // Calculate latest version age
+        let latestAgeDays = null;
+        if (result.latestReleaseDate) {
+          const latestParsed = new Date(result.latestReleaseDate);
+          latestAgeDays = Math.floor((Date.now() - latestParsed.getTime()) / 86400000);
+          entry.latestReleaseDate = latestParsed.toISOString().slice(0, 10);
+        }
+        entry.latestAgeDays = latestAgeDays;
+        
+        // Check if at latest version
+        const currentVer = (entry.row.version || '').trim().toLowerCase();
+        const latestVer = (result.latestVersion || '').trim().toLowerCase();
+        entry.isAtLatest = currentVer && latestVer && (currentVer === latestVer);
+        
+        // Store latest version
+        if (result.latestVersion) entry.latestVersion = result.latestVersion;
+        
+        // Check if repository is archived (for GitHub packages)
+        if (result.archived) {
+          entry.isEOL = true;
+          entry.archivedRepo = true; // Flag to distinguish archived from other EOL
+        }
+        
+        // EOL flag is already set from SBOM analysis (entry.isEOL)
+        // It will be preserved and used in classification
+        
+        // Classify age band with new logic
+        entry.ageBand = classifyAgeBand(days, latestAgeDays, entry.isAtLatest, entry.isEOL);
+        entry.status = 'done';
+      } else {
+        entry.status = 'notfound';
+        // If EOL was detected from SBOM, still mark it as EOL even without age data
+        entry.ageBand = entry.isEOL ? 'eol' : 'unknown-age';
+      }
+    } catch(err) {
+      entry.status = 'error';
+      entry.error = err.message || 'Unknown error';
+      // If EOL was detected from SBOM, still mark it as EOL even on error
+      entry.ageBand = entry.isEOL ? 'eol' : 'unknown-age';
+    }
+
+    updateAgeStats();
+    renderAgeTable();
+    await new Promise(r => setTimeout(r, 100));
+  }
+
+  document.getElementById('age-progress-fill').style.width = '100%';
+  document.getElementById('age-progress-label').textContent = `${toFetch.length} / ${toFetch.length}`;
+  document.getElementById('header-status').textContent = 'Done';
+  setTimeout(() => {
+    document.getElementById('age-progress-wrap').style.display = 'none';
+    document.getElementById('header-status').textContent = 'Ready';
+  }, 1500);
+
+  ageFetching = false;
+  document.getElementById('btn-fetch-ages').disabled = false;
+  const done = ageEntries.filter(e => e.status === 'done').length;
+  showToast(`✓ Fetched age data for ${done} packages`);
+}
+
+// ── Per-ecosystem release date fetchers ───────────────────────────────────────
+async function fetchReleaseDateAndLatest(eco, name, ver) {
+  if (eco === 'npm')    return fetchNpmReleaseDateAndLatest(name, ver);
+  if (eco === 'pypi')   return fetchPyPIReleaseDateAndLatest(name, ver);
+  if (eco === 'cargo')  return fetchCratesReleaseDateAndLatest(name, ver);
+  if (eco === 'nuget')  return fetchNuGetReleaseDateAndLatest(name, ver);
+  if (eco === 'go')     return fetchGoReleaseDateAndLatest(name, ver);
+  if (eco === 'github') return fetchGitHubReleaseDateAndLatest(name, ver);
+  if (eco === 'maven')  return fetchMavenReleaseDateAndLatest(name, ver);
+  return null; // unsupported
+}
+
+// Keep legacy wrapper for any other callers
+async function fetchReleaseDate(eco, name, ver) {
+  const r = await fetchReleaseDateAndLatest(eco, name, ver);
+  return r?.releaseDate || null;
+}
+
+async function fetchNpmReleaseDateAndLatest(name, ver) {
+  let encName = name.startsWith('@')
+    ? ('@' + name.slice(1).split('/').map(encodeURIComponent).join('/'))
+    : encodeURIComponent(name);
+
+  let cleanVer = ver ? ver.replace(/^[~^>=<! ]+/, '').split(/\s/)[0].trim() : null;
+  if (cleanVer && !/^\d/.test(cleanVer)) cleanVer = null;
+
+  async function npmGet(url) {
+    try { return await safeFetch(url); }
+    catch(e) {
+      if (e.type === 'cors' || e.type === 'network') return await corsProxyFetch(url);
+      throw e;
+    }
+  }
+
+  const data = await npmGet(`https://registry.npmjs.org/${encName}`);
+  const time = data.time;
+  if (!time) return null;
+
+  // Current version release date
+  let releaseDate = null;
+  if (cleanVer && time[cleanVer]) releaseDate = time[cleanVer];
+  if (!releaseDate) {
+    const latest = data['dist-tags']?.latest;
+    if (latest && time[latest]) releaseDate = time[latest];
+  }
+  if (!releaseDate) {
+    const dates = Object.entries(time)
+      .filter(([k]) => k !== 'created' && k !== 'modified')
+      .sort((a, b) => new Date(b[1]) - new Date(a[1]));
+    releaseDate = dates[0]?.[1] || null;
+  }
+
+  // Latest version info
+  const latestTag = data['dist-tags']?.latest;
+  const latestReleaseDate = latestTag && time[latestTag] ? time[latestTag] : null;
+  const latestVersion = latestTag || null;
+
+  return { releaseDate, latestVersion, latestReleaseDate };
+}
+
+async function fetchPyPIReleaseDateAndLatest(name, ver) {
+  let cleanVer = ver ? ver.replace(/^[~^>=<! ]+/, '').split(/\s/)[0].trim() : null;
+  if (cleanVer && !/^\d/.test(cleanVer)) cleanVer = null;
+
+  async function pypiGet(url) {
+    try { return await safeFetch(url); }
+    catch(e) {
+      if (e.type === 'cors' || e.type === 'network') return await corsProxyFetch(url);
+      throw e;
+    }
+  }
+
+  // Fetch latest (always get full package info for latest version data)
+  const latestData = await pypiGet(`https://pypi.org/pypi/${encodeURIComponent(name)}/json`);
+  const latestVersion = latestData.info?.version || null;
+  const latestReleaseFiles = latestVersion && latestData.releases?.[latestVersion];
+  const latestReleaseDate = latestReleaseFiles?.length > 0 ? latestReleaseFiles[0].upload_time : null;
+
+  // Current version release date
+  let releaseDate = null;
+  if (cleanVer && cleanVer !== latestVersion) {
+    let verData;
+    try {
+      verData = await pypiGet(`https://pypi.org/pypi/${encodeURIComponent(name)}/${encodeURIComponent(cleanVer)}/json`);
+    } catch(e) { verData = null; }
+    const files = verData?.releases?.[cleanVer] || latestData.releases?.[cleanVer];
+    if (files?.length > 0) releaseDate = files[0].upload_time;
+  } else {
+    const releases = latestData.releases || {};
+    const targetVer = cleanVer || latestVersion;
+    if (targetVer && releases[targetVer]?.length > 0) {
+      releaseDate = releases[targetVer][0].upload_time;
+    } else {
+      const allDates = Object.values(releases).flat().map(f => f.upload_time).filter(Boolean).sort().reverse();
+      releaseDate = allDates[0] || null;
+    }
+  }
+
+  return { releaseDate, latestVersion, latestReleaseDate };
+}
+
+async function fetchCratesReleaseDateAndLatest(name, ver) {
+  let cleanVer = ver ? ver.replace(/^[~^>=<! ]+/, '').split(/\s/)[0].trim() : null;
+  if (cleanVer && !/^\d/.test(cleanVer)) cleanVer = null;
+
+  async function cratesGet(url) {
+    try { return await safeFetch(url, { headers: { 'User-Agent': 'sbom-analyzer/1.0' } }); }
+    catch(e) {
+      if (e.type === 'cors' || e.type === 'network') return await corsProxyFetch(url);
+      throw e;
+    }
+  }
+
+  const data = await cratesGet(`https://crates.io/api/v1/crates/${encodeURIComponent(name)}`);
+  const versions = data.versions || [];
+
+  // Latest non-yanked version
+  const latestVer = versions.find(v => !v.yanked);
+  const latestVersion = latestVer?.num || null;
+  const latestReleaseDate = latestVer?.created_at || null;
+
+  // Current version release date
+  let releaseDate = null;
+  if (cleanVer) {
+    const match = versions.find(v => v.num === cleanVer);
+    releaseDate = match?.created_at || latestVer?.created_at || null;
+  } else {
+    releaseDate = latestVer?.created_at || null;
+  }
+
+  return { releaseDate, latestVersion, latestReleaseDate };
+}
+
+async function fetchNuGetReleaseDateAndLatest(name, ver) {
+  let cleanVer = ver ? ver.replace(/^[~^>=<! ]+/, '').split(/\s/)[0].trim() : null;
+  if (cleanVer && !/^\d/.test(cleanVer)) cleanVer = null;
+
+  async function nugetGet(url) {
+    try { return await safeFetch(url); }
+    catch(e) {
+      if (e.type === 'cors' || e.type === 'network') return await corsProxyFetch(url);
+      throw e;
+    }
+  }
+
+  const regUrl = `https://api.nuget.org/v3/registration5-semver1/${name.toLowerCase()}/index.json`;
+  let regData;
+  try { regData = await nugetGet(regUrl); } catch { return null; }
+
+  const pages = regData.items || [];
+  let releaseDate = null;
+  let latestVersion = null;
+  let latestReleaseDate = null;
+  let allEntries = [];
+
+  for (const page of pages) {
+    const items = page.items || [];
+    for (const item of items) {
+      const entry = item.catalogEntry || item;
+      if (entry.version && entry.published) {
+        allEntries.push({ version: entry.version, published: entry.published });
+        if (cleanVer && entry.version === cleanVer && !releaseDate) releaseDate = entry.published;
+      }
+    }
+  }
+
+  // Latest = last entry in registration (NuGet orders ascending)
+  if (allEntries.length > 0) {
+    const last = allEntries[allEntries.length - 1];
+    latestVersion = last.version;
+    latestReleaseDate = last.published;
+  }
+
+  if (!releaseDate && allEntries.length > 0) releaseDate = allEntries[allEntries.length - 1].published;
+
+  return { releaseDate, latestVersion, latestReleaseDate };
+}
+
+async function fetchMavenReleaseDateAndLatest(name, ver) {
+  // Maven artifacts are identified as groupId:artifactId
+  // The name might be in format "groupId:artifactId" or just "artifactId"
+  // We need to parse the purl or name to get both parts
+  
+  let groupId, artifactId;
+  
+  // Try to parse from name (format: groupId:artifactId or groupId/artifactId)
+  if (name.includes(':')) {
+    [groupId, artifactId] = name.split(':');
+  } else if (name.includes('/')) {
+    [groupId, artifactId] = name.split('/');
+  } else {
+    // If no separator, assume it's just the artifactId
+    // This is a fallback - Maven really needs both groupId and artifactId
+    artifactId = name;
+    groupId = null;
+  }
+  
+  if (!groupId || !artifactId) {
+    throw new ApiError('Maven artifact requires groupId:artifactId format', 'notfound');
+  }
+  
+  let cleanVer = ver ? ver.replace(/^[~^>=<! ]+/, '').split(/\s/)[0].trim() : null;
+  if (cleanVer && !/^\d/.test(cleanVer)) cleanVer = null;
+  
+  async function mavenGet(url) {
+    try { return await safeFetch(url); }
+    catch(e) {
+      if (e.type === 'cors' || e.type === 'network') return await corsProxyFetch(url);
+      throw e;
+    }
+  }
+  
+  // Maven Central Search API
+  // Query for the artifact to get version information
+  const searchUrl = `https://search.maven.org/solrsearch/select?q=g:"${encodeURIComponent(groupId)}"+AND+a:"${encodeURIComponent(artifactId)}"&rows=100&wt=json`;
+  
+  let data;
+  try {
+    data = await mavenGet(searchUrl);
+  } catch (e) {
+    throw new ApiError(`Maven Central API error: ${e.message}`, e.type || 'error');
+  }
+  
+  const docs = data?.response?.docs || [];
+  if (docs.length === 0) {
+    throw new ApiError('Artifact not found in Maven Central', 'notfound');
+  }
+  
+  // Sort versions by timestamp (newest first)
+  const sortedDocs = docs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  
+  // Latest version is the first one
+  const latestDoc = sortedDocs[0];
+  const latestVersion = latestDoc.latestVersion || latestDoc.v || null;
+  const latestReleaseDate = latestDoc.timestamp ? new Date(latestDoc.timestamp).toISOString() : null;
+  
+  // Find the specific version if provided
+  let releaseDate = null;
+  if (cleanVer) {
+    const versionDoc = docs.find(d => d.v === cleanVer);
+    if (versionDoc && versionDoc.timestamp) {
+      releaseDate = new Date(versionDoc.timestamp).toISOString();
+    } else {
+      // If specific version not found, use latest
+      releaseDate = latestReleaseDate;
+    }
+  } else {
+    releaseDate = latestReleaseDate;
+  }
+  
+  return { releaseDate, latestVersion, latestReleaseDate };
+}
+
+async function fetchGoReleaseDateAndLatest(name, ver) {
+  // Go module names are already paths (e.g. github.com/gin-gonic/gin).
+  // The module proxy requires lowercase-escaped paths per GOPROXY protocol.
+  function goEncode(mod) {
+    // Go proxy uses a case-encoding for capital letters: A → !a
+    return mod.replace(/[A-Z]/g, c => '!' + c.toLowerCase());
+  }
+
+  // Semver-aware comparator for Go versions (vMAJOR.MINOR.PATCH[-pre])
+  function semverGt(a, b) {
+    const parse = v => {
+      const m = (v || '').replace(/^v/, '').match(/^(\d+)\.(\d+)\.(\d+)(.*)$/);
+      if (!m) return null;
+      return { major: +m[1], minor: +m[2], patch: +m[3], pre: m[4] };
+    };
+    const pa = parse(a), pb = parse(b);
+    if (!pa || !pb) return false;
+    // Pre-releases sort lower than releases
+    const preA = pa.pre ? 1 : 0, preB = pb.pre ? 1 : 0;
+    if (pa.major !== pb.major) return pa.major > pb.major;
+    if (pa.minor !== pb.minor) return pa.minor > pb.minor;
+    if (pa.patch !== pb.patch) return pa.patch > pb.patch;
+    // If same version numbers, a release beats a pre-release
+    return preB > preA;
+  }
+
+  // Pick the semver-highest version from a list of version strings
+  function pickLatestSemver(versions) {
+    return versions
+      .map(v => v.trim())
+      .filter(v => /^v\d/.test(v))               // only proper vX.Y.Z versions
+      .reduce((best, cur) => semverGt(cur, best) ? cur : best, '');
+  }
+
+  // Derive the base module path (strip major-version suffix /vN for N>=2)
+  function baseModulePath(mod) {
+    return mod.replace(/\/v\d+$/, '');
+  }
+
+  // Extract the major version from a module path suffix (/vN) or a version string
+  function majorFromPath(mod) {
+    const m = mod.match(/\/v(\d+)$/);
+    return m ? parseInt(m[1], 10) : 1;
+  }
+  function majorFromVer(v) {
+    const m = (v || '').replace(/^v/, '').match(/^(\d+)/);
+    return m ? parseInt(m[1], 10) : 0;
+  }
+
+  // Strip leading 'v' prefix for version matching
+  let cleanVer = ver ? ver.replace(/^[~^>=<! ]+/, '').split(/\s/)[0].trim() : null;
+  if (cleanVer && !/^v?\d/.test(cleanVer)) cleanVer = null;
+  // Ensure version has 'v' prefix as Go proxy requires
+  if (cleanVer && !cleanVer.startsWith('v')) cleanVer = 'v' + cleanVer;
+
+  async function goGet(url) {
+    try { return await safeFetch(url); }
+    catch(e) {
+      if (e.type === 'cors' || e.type === 'network') return await corsProxyFetch(url);
+      throw e;
+    }
+  }
+
+  // Determine the correct module path to query.
+  // Go modules with major version >= 2 MUST use the /vN suffix in the module path.
+  // SBOMs sometimes record the bare path even for v2+ packages, so we need to
+  // figure out the right path to use for proxy queries.
+  const verMajor = majorFromVer(cleanVer);
+  const pathMajor = majorFromPath(name);
+  const basePath = baseModulePath(name);
+
+  // Build candidate module paths to try, in priority order:
+  // 1. If the PURL name already has a /vN suffix, use it as-is.
+  // 2. If the version implies a major >= 2 but the path has no suffix, try adding /vN.
+  // 3. Always also try the base path (handles v0/v1 and bare-path SBOMs).
+  const candidatePaths = [];
+  if (pathMajor >= 2) {
+    // Path already has a proper suffix
+    candidatePaths.push(name);
+  } else if (verMajor >= 2) {
+    // Version implies v2+ but path has no suffix — try both suffixed and bare
+    candidatePaths.push(`${basePath}/v${verMajor}`);
+    candidatePaths.push(basePath);
+  } else {
+    candidatePaths.push(basePath);
+  }
+
+  let latestVersion = null;
+  let latestReleaseDate = null;
+  let releaseDate = null;
+  let resolvedPath = null;
+
+  for (const modPath of candidatePaths) {
+    const encodedName = goEncode(modPath);
+    const proxyBase = `https://proxy.golang.org/${encodedName}`;
+
+    // 1. Try @latest for this candidate path
+    let pathLatestVersion = null;
+    let pathLatestDate = null;
+    try {
+      const latest = await goGet(`${proxyBase}/@latest`);
+      pathLatestVersion = latest.Version || null;
+      pathLatestDate = latest.Time || null;
+    } catch(_) {}
+
+    // 2. If @latest failed or returned nothing, fall back to @v/list with semver sort
+    if (!pathLatestVersion) {
+      try {
+        const listText = await safeFetchText(`${proxyBase}/@v/list`);
+        const versions = listText.trim().split('\n').filter(Boolean);
+        if (versions.length > 0) {
+          const best = pickLatestSemver(versions);
+          if (best) {
+            pathLatestVersion = best;
+            try {
+              const info = await goGet(`${proxyBase}/@v/${encodeURIComponent(goEncode(best))}.info`);
+              pathLatestDate = info.Time || null;
+            } catch(_) {}
+          }
+        }
+      } catch(_) {}
+    }
+
+    // 3. Fetch release date for the specific requested version on this path
+    let pathReleaseDate = null;
+    if (cleanVer) {
+      try {
+        const info = await goGet(`${proxyBase}/@v/${encodeURIComponent(goEncode(cleanVer))}.info`);
+        pathReleaseDate = info.Time || null;
+      } catch(_) {}
+    }
+
+    // Accept this candidate if it gave us useful data
+    if (pathLatestVersion || pathReleaseDate) {
+      resolvedPath = modPath;
+      latestVersion = pathLatestVersion;
+      latestReleaseDate = pathLatestDate;
+      releaseDate = pathReleaseDate || pathLatestDate;
+      break;
+    }
+  }
+
+  if (!releaseDate && latestReleaseDate) releaseDate = latestReleaseDate;
+  if (!releaseDate && !latestVersion) return null;
+  
+  // Check if this is a GitHub-hosted Go module and if the repo is archived
+  let archived = false;
+  if (name.startsWith('github.com/')) {
+    try {
+      // Extract owner/repo from github.com/owner/repo path
+      const parts = name.replace('github.com/', '').split('/');
+      if (parts.length >= 2) {
+        const githubName = `${parts[0]}/${parts[1]}`;
+        const repoInfo = await fetchGitHubRepoInfo(githubName);
+        archived = repoInfo.archived || false;
+      }
+    } catch (err) {
+      // If we can't check archived status, just continue without it
+      // This prevents failures when GitHub API is unavailable
+    }
+  }
+  
+  return { releaseDate, latestVersion, latestReleaseDate, archived };
+}
+
+async function fetchGitHubReleaseDateAndLatest(name, ver) {
+  // Fetch GitHub repository information including archived status
+  try {
+    const repoInfo = await fetchGitHubRepoInfo(name);
+    
+    // If archived, return with archived flag set to true
+    // Use the last push date or update date as the "release date"
+    if (repoInfo.archived) {
+      const lastActivity = repoInfo.pushedAt || repoInfo.updatedAt || repoInfo.createdAt;
+      return {
+        releaseDate: lastActivity,
+        latestVersion: ver || 'archived', // Use current version or mark as archived
+        latestReleaseDate: lastActivity,
+        archived: true
+      };
+    }
+    
+    // For non-archived repos, use the last push/update date
+    // GitHub doesn't have a universal release date API for all repos
+    // Some repos use GitHub Releases, others just commit history
+    const lastActivity = repoInfo.pushedAt || repoInfo.updatedAt;
+    return {
+      releaseDate: lastActivity,
+      latestVersion: ver || 'latest',
+      latestReleaseDate: lastActivity,
+      archived: false
+    };
+  } catch (err) {
+    throw new ApiError(`Failed to fetch GitHub repo info: ${err.message}`, err.type || 'error');
+  }
+}
+
+function exportAgeCSV() {
+  const rows = [['Package', 'Version', 'Ecosystem', 'Release Date', 'Age (days)', 'Band', 'Latest Version', 'Latest Release Date']];
+  ageEntries.forEach(e => {
+    rows.push([
+      e.row.name, e.row.version || '', e.row.ecosystem || '',
+      e.releaseDate || '', e.ageDays !== null ? e.ageDays : '', ageBandLabel(e.ageBand),
+      e.latestVersion || '', e.latestReleaseDate || ''
+    ]);
+  });
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'component-age-report.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Age CSV exported');
+}
+
+// Show nav tabs and update badge after analysis runs
+// (hooked via the analyze() override above)
+</script>
+
+<!-- ═══ FOOTER ════════════════════════════════════════════════════════════════ -->
+<footer class="footer">
+  <a href="https://bob.build" target="_blank" rel="noopener noreferrer" class="footer-badge">
+    <span class="footer-icon">🤖</span>
+    <span class="footer-text">Built with BOB</span>
+  </a>
+</footer>
+
+</body>
+</html>

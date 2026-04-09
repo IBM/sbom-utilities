@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SBOM Dependency Analyzer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #0f62fe;
+            --success: #24a148;
+            --warning: #f1c21b;
+            --danger: #da1e28;
+            --bg: #f4f4f4;
+            --card: #ffffff;
+            --border: #e0e0e0;
+            --text: #161616;
+            --text-secondary: #525252;
+        }
+        
+        body {
+            font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #0f62fe 0%, #002d9c 100%);
+            padding: 2rem 3rem;
+            color: white;
+            box-shadow: 0 4px 12px rgba(15, 98, 254, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        header .header-content { flex: 1; }
+        header h1 { font-size: 1.75rem; font-weight: 400; margin-bottom: 0.5rem; }
+        header p { opacity: 0.9; font-size: 0.875rem; }
+        header .version {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            font-weight: 300;
+            white-space: nowrap;
+            margin-left: 2rem;
+        }
+        
+        .container { max-width: 100%; padding: 0; }
+        
+        .upload-section {
+            background: var(--card);
+            padding: 2rem 3rem;
+            margin: 1.5rem 3rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        
+        .upload-box {
+            border: 2px dashed #8d8d8d;
+            border-radius: 8px;
+            padding: 2.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .upload-box:hover { border-color: var(--primary); background: #f1f5f9; }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        
+        .btn-primary:hover:not(:disabled) { background: #0353e9; }
+        .btn-primary:disabled { background: #e0e0e0; color: #8d8d8d; cursor: not-allowed; }
+        
+        .loading { text-align: center; padding: 3rem; }
+        .spinner {
+            border: 3px solid #e0e0e0;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 0.7s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        .error-message {
+            background: #fff1f1;
+            border-left: 3px solid var(--danger);
+            padding: 0.75rem 1rem;
+            margin: 1.5rem 3rem;
+        }
+        
+        .summary-section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 1.5rem 3rem;
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .summary-card {
+            background: var(--bg);
+            padding: 1.5rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .summary-card.direct { border-color: var(--success); background: #defbe6; }
+        .summary-card.transitive { border-color: var(--warning); background: #fcf4d6; }
+        
+        .card-value { font-size: 3rem; font-weight: 300; margin-bottom: 0.5rem; }
+        .card-label { font-size: 0.875rem; color: var(--text-secondary); text-transform: uppercase; }
+        
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0 3rem;
+            margin-top: 1.5rem;
+        }
+        
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: var(--card);
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        
+        .tab-btn:hover { color: var(--text); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        
+        .tab-badge {
+            display: inline-block;
+            background: #e0e0e0;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin-right: 0.5rem;
+        }
+        
+        .tab-btn.active .tab-badge { background: var(--primary); color: white; }
+        
+        .table-section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin: 1.5rem 3rem;
+            overflow: hidden;
+        }
+        
+        .table-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .table-header h3 { font-size: 1.25rem; font-weight: 400; }
+        
+        .table-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .search-input {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.875rem;
+            min-width: 250px;
+        }
+        
+        .search-input:focus { outline: none; border-color: var(--primary); }
+        
+        select {
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+        
+        .dependency-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .dependency-table thead {
+            background: var(--bg);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .dependency-table th {
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            border-bottom: 2px solid #8d8d8d;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .dependency-table th:hover { background: #e0e0e0; }
+        .dependency-table th.sortable::after { content: ' ⇅'; opacity: 0.3; }
+        .dependency-table th.sorted-asc::after { content: ' ▲'; opacity: 1; }
+        .dependency-table th.sorted-desc::after { content: ' ▼'; opacity: 1; }
+        
+        .dependency-table tbody tr {
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .dependency-table tbody tr:hover {
+            background: var(--bg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transform: translateX(2px);
+        }
+        
+        .dependency-table tbody tr.direct { border-left: 4px solid var(--success); }
+        .dependency-table tbody tr.transitive { border-left: 4px solid var(--warning); }
+        
+        .dependency-table td {
+            padding: 0.75rem;
+            font-size: 0.875rem;
+        }
+        
+        /* Add chevron indicator to first cell */
+        .dependency-table tbody tr:not(.expanded-row) td:first-child {
+            position: relative;
+            padding-left: 1.5rem;
+        }
+        
+        .dependency-table tbody tr:not(.expanded-row) td:first-child::before {
+            content: '▶';
+            position: absolute;
+            left: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.65rem;
+            transition: transform 0.2s;
+        }
+        
+        .dependency-table tbody tr:not(.expanded-row):hover td:first-child::before {
+            color: var(--primary);
+        }
+        
+        .dependency-table tbody tr.expanded td:first-child::before {
+            transform: rotate(90deg);
+            color: var(--primary);
+        }
+        
+        .dependency-table td.component-name {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .expanded-row { display: none; }
+        .expanded-row.show { display: table-row; }
+        .expanded-row td {
+            padding: 0;
+            background: var(--bg);
+        }
+        
+        .expanded-content {
+            padding: 1.5rem;
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .rationale-section {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: var(--card);
+            border-radius: 6px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .rationale-section h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .rationale-section ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .rationale-section li {
+            padding: 0.5rem 0;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            display: flex;
+            align-items: start;
+            gap: 0.5rem;
+        }
+        
+        .rationale-section li::before {
+            content: "•";
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .risk-level {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .risk-level.low { background: #defbe6; color: #0e6027; }
+        .risk-level.medium { background: #fcf4d6; color: #8e6a00; }
+        .risk-level.high { background: #ffd7d9; color: #750e13; }
+        
+        .type-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .type-badge.direct { background: #defbe6; color: #0e6027; }
+        .type-badge.transitive { background: #fcf4d6; color: #8e6a00; }
+        
+        .pagination {
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border);
+        }
+        
+        .pagination-info { font-size: 0.875rem; color: var(--text-secondary); }
+        
+        .pagination-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .pagination-buttons button {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            background: var(--card);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        
+        .pagination-buttons button:hover:not(:disabled) { background: var(--bg); }
+        .pagination-buttons button:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>🔍 SBOM Dependency Analyzer</h1>
+                <p>Analyze component dependencies with detailed rationale and risk assessment</p>
+            </div>
+            <div class="version">v1.April06</div>
+        </header>
+
+        <div class="upload-section">
+            <div class="upload-box" id="uploadBox">
+                <input type="file" id="sbomFile" accept=".json" style="display: none;">
+                <label for="sbomFile" style="cursor: pointer; display: block;">
+                    <div style="font-size: 3rem;">📁</div>
+                    <div><strong>Click to upload SBOM</strong></div>
+                    <div style="font-size: 0.875rem; color: #525252; margin-top: 0.5rem;">or drag and drop here</div>
+                    <div style="font-size: 0.75rem; color: #8d8d8d; margin-top: 0.25rem;">CycloneDX JSON format</div>
+                </label>
+            </div>
+            <div id="fileName" style="margin: 1rem 0; color: #525252; font-size: 0.875rem;"></div>
+            <button id="analyzeBtn" class="btn-primary" disabled>Analyze SBOM</button>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Analyzing SBOM...</p>
+        </div>
+
+        <div id="error" class="error-message" style="display: none;"></div>
+
+        <div id="results" style="display: none;">
+            <div class="summary-section">
+                <h2>📊 Summary</h2>
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <div class="card-value" id="totalComponents">0</div>
+                        <div class="card-label">Total Components</div>
+                    </div>
+                    <div class="summary-card direct">
+                        <div class="card-value" id="directCount">0</div>
+                        <div class="card-label">Direct Dependencies</div>
+                    </div>
+                    <div class="summary-card transitive">
+                        <div class="card-value" id="transitiveCount">0</div>
+                        <div class="card-label">Transitive Dependencies</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin: 1.5rem 3rem;">
+                <h3 style="font-size: 1.25rem; font-weight: 400; margin-bottom: 1rem;">🔎 Component Lookup</h3>
+                <div style="display: flex; gap: 1rem; align-items: end; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase;">Component Name</label>
+                        <input type="text" id="lookupName" placeholder="e.g., lodash, express, react" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.875rem;">
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase;">Version (Optional)</label>
+                        <input type="text" id="lookupVersion" placeholder="e.g., 4.17.21" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.875rem;">
+                    </div>
+                    <button onclick="lookupComponent()" style="padding: 0.5rem 1.5rem; background: var(--primary); color: white; border: none; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; white-space: nowrap;">Find Component</button>
+                    <button onclick="clearLookup()" style="padding: 0.5rem 1rem; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 4px; font-size: 0.875rem; cursor: pointer; white-space: nowrap;">Clear</button>
+                </div>
+                <div id="lookupResults" style="margin-top: 1rem; display: none;">
+                    <div id="lookupResultsContent"></div>
+                </div>
+            </div>
+
+            <div style="background: #f0f7ff; border-left: 4px solid var(--primary); padding: 0.75rem 1rem; margin-bottom: 1rem; border-radius: 4px;">
+                <p style="margin: 0; color: var(--text); font-size: 0.9rem;">
+                    💡 <strong>Tip:</strong> Click on any row to expand and view detailed dependency information, including why it exists, structural risk assessment, and NTIA compliance. Click dependency links to navigate the dependency tree.
+                </p>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="insights">
+                    📊 Analysis Insights
+                </button>
+                <button class="tab-btn" data-tab="all">
+                    <span class="tab-badge" id="allBadge">0</span>
+                    All Dependencies
+                </button>
+                <button class="tab-btn" data-tab="direct">
+                    <span class="tab-badge" id="directBadge">0</span>
+                    Direct Only
+                </button>
+                <button class="tab-btn" data-tab="transitive">
+                    <span class="tab-badge" id="transitiveBadge">0</span>
+                    Transitive Only
+                </button>
+            </div>
+
+            <!-- Analysis Insights Tab Content -->
+            <div id="insightsTab" class="tab-content active" style="margin: 0 3rem 2rem 3rem;">
+                <div style="background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 2rem;">
+                    <h2 style="font-size: 1.5rem; font-weight: 400; margin-bottom: 1.5rem; color: var(--text);">
+                        🔍 SBOM Structure & Dependency Analysis
+                    </h2>
+                    
+                    <div id="insightsContent">
+                        <!-- Content will be dynamically generated -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="tableTab" class="tab-content table-section" style="display: none;">
+                <div class="table-header">
+                    <h3>Dependencies</h3>
+                    <div class="table-controls">
+                        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search components...">
+                        <label>Show:</label>
+                        <select id="pageSize">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="all">All</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <table class="dependency-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="name">Component Name</th>
+                            <th class="sortable" data-sort="version">Version</th>
+                            <th class="sortable" data-sort="type">Dep Type</th>
+                            <th class="sortable" data-sort="license">License</th>
+                            <th class="sortable" data-sort="risk">Structural Risk</th>
+                            <th class="sortable" data-sort="depth">Depth</th>
+                            <th class="sortable" data-sort="deps">Deps</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dependencyTableBody">
+                    </tbody>
+                </table>
+                
+                <div class="pagination">
+                    <div class="pagination-info" id="paginationInfo">Showing 0-0 of 0</div>
+                    <div class="pagination-buttons">
+                        <button id="prevPage">← Previous</button>
+                        <button id="nextPage">Next →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let analysisData = null;
+        let rawSBOMData = null;
+        let allComponents = [];
+        let filteredComponents = [];
+        let currentTab = 'all';
+        let currentPage = 1;
+        let pageSize = 50;
+        let sortColumn = 'name';
+        let sortDirection = 'asc';
+        let expandedRows = new Set();
+        let isNavigating = false; // Flag to prevent interference during navigation
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('sbomFile').addEventListener('change', handleFileSelect);
+            document.getElementById('analyzeBtn').addEventListener('click', analyzeSBOM);
+            document.getElementById('searchInput').addEventListener('input', handleSearch);
+            document.getElementById('pageSize').addEventListener('change', handlePageSizeChange);
+            document.getElementById('prevPage').addEventListener('click', () => changePage(-1));
+            document.getElementById('nextPage').addEventListener('click', () => changePage(1));
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => switchTab(e.target.closest('.tab-btn').dataset.tab));
+            });
+            
+            document.querySelectorAll('.dependency-table th.sortable').forEach(th => {
+                th.addEventListener('click', () => handleSort(th.dataset.sort));
+            });
+            
+            // Setup drag and drop
+            setupDragAndDrop();
+        });
+        
+        function setupDragAndDrop() {
+            const uploadBox = document.getElementById('uploadBox');
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadBox.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadBox.addEventListener(eventName, () => {
+                    uploadBox.style.borderColor = 'var(--primary)';
+                    uploadBox.style.background = '#f0f7ff';
+                    uploadBox.style.transform = 'scale(1.02)';
+                }, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadBox.addEventListener(eventName, () => {
+                    uploadBox.style.borderColor = '';
+                    uploadBox.style.background = '';
+                    uploadBox.style.transform = '';
+                }, false);
+            });
+            
+            uploadBox.addEventListener('drop', handleDrop, false);
+        }
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                const file = files[0];
+                
+                // Check if it's a JSON file
+                if (!file.name.endsWith('.json')) {
+                    alert('Please drop a JSON file');
+                    return;
+                }
+                
+                // Set the file to the input element
+                const fileInput = document.getElementById('sbomFile');
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+                
+                // Trigger the file select handler
+                handleFileSelect();
+            }
+        }
+        
+        function handleFileSelect() {
+            const file = document.getElementById('sbomFile').files[0];
+            if (file) {
+                document.getElementById('fileName').textContent = `Selected: ${file.name}`;
+                document.getElementById('analyzeBtn').disabled = false;
+            }
+        }
+        
+        async function analyzeSBOM() {
+            const file = document.getElementById('sbomFile').files[0];
+            if (!file) return;
+            
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const text = await file.text();
+                const sbomData = JSON.parse(text);
+                
+                if (sbomData.bomFormat !== 'CycloneDX') {
+                    throw new Error('Not a valid CycloneDX SBOM');
+                }
+                
+                rawSBOMData = sbomData;
+                analysisData = analyzeSBOMData(sbomData);
+                displayResults();
+                
+            } catch (err) {
+                document.getElementById('error').textContent = `❌ Error: ${err.message}`;
+                document.getElementById('error').style.display = 'block';
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
+        function analyzeSBOMData(sbomData) {
+            const components = {};
+            const dependencies = {};
+            
+            for (const component of sbomData.components || []) {
+                components[component['bom-ref']] = component;
+            }
+            
+            for (const dep of sbomData.dependencies || []) {
+                dependencies[dep.ref] = dep.dependsOn || [];
+            }
+            
+            const mainComponentRef = sbomData.metadata?.component?.['bom-ref'];
+            const directDeps = new Set(dependencies[mainComponentRef] || []);
+            const allComponentRefs = new Set(Object.keys(components));
+            const transitiveDeps = new Set([...allComponentRefs].filter(ref => !directDeps.has(ref)));
+            
+            const allComps = [];
+            
+            for (const bomRef of directDeps) {
+                if (components[bomRef]) {
+                    allComps.push(buildComponentData(components[bomRef], bomRef, 'direct', dependencies));
+                }
+            }
+            
+            for (const bomRef of transitiveDeps) {
+                if (components[bomRef]) {
+                    allComps.push(buildComponentData(components[bomRef], bomRef, 'transitive', dependencies));
+                }
+            }
+            
+            return {
+                summary: { total: allComps.length, direct: directDeps.size, transitive: transitiveDeps.size },
+                components: allComps
+            };
+        }
+        
+        function buildComponentData(comp, bomRef, depType, dependencies) {
+            const depth = calculateDependencyDepth(bomRef);
+            const dependents = findDependents(bomRef);
+            const risk = calculateRiskLevel(comp, depType === 'direct', depth, dependents.length);
+            
+            return {
+                bom_ref: bomRef,
+                name: comp.name || 'Unknown',
+                version: comp.version || '',
+                type: depType,
+                componentType: comp.type || 'library',
+                license: extractLicenses(comp)[0] || 'Unknown',
+                licenses: extractLicenses(comp),
+                purl: comp.purl || '',
+                group: comp.group || '',
+                dependencies: dependencies[bomRef] || [],
+                depth: depth,
+                dependents: dependents,
+                risk: risk,
+                rawComponent: comp
+            };
+        }
+        
+        function extractLicenses(component) {
+            const licenses = [];
+            for (const lic of component.licenses || []) {
+                if (lic.expression) licenses.push(lic.expression);
+                else if (lic.license) {
+                    const licObj = lic.license;
+                    if (licObj.id) licenses.push(licObj.id);
+                    else if (licObj.name) licenses.push(licObj.name);
+                }
+            }
+            return licenses.length > 0 ? licenses : ['Unknown'];
+        }
+        
+        function calculateDependencyDepth(bomRef) {
+            if (!rawSBOMData || !rawSBOMData.dependencies) return 1;
+            
+            const mainComponentRef = rawSBOMData.metadata?.component?.['bom-ref'];
+            if (!mainComponentRef) return 1;
+            
+            const dependencies = {};
+            rawSBOMData.dependencies.forEach(dep => {
+                dependencies[dep.ref] = dep.dependsOn || [];
+            });
+            
+            const queue = [[mainComponentRef, 0]];
+            const visited = new Set();
+            
+            while (queue.length > 0) {
+                const [current, depth] = queue.shift();
+                if (current === bomRef) return depth;
+                if (visited.has(current)) continue;
+                visited.add(current);
+                
+                const deps = dependencies[current] || [];
+                deps.forEach(dep => queue.push([dep, depth + 1]));
+            }
+            
+            return 1;
+        }
+        
+        function findDependents(bomRef) {
+            if (!rawSBOMData || !rawSBOMData.dependencies) return [];
+            
+            const dependents = [];
+            rawSBOMData.dependencies.forEach(dep => {
+                if (dep.dependsOn && dep.dependsOn.includes(bomRef)) {
+                    dependents.push(dep.ref);
+                }
+            });
+            return dependents;
+        }
+        
+        function calculateRiskLevel(component, isDirect, depth, dependentCount) {
+            let score = 0;
+            
+            if (!isDirect) score += 2;
+            if (depth > 3) score += 2;
+            else if (depth > 2) score += 1;
+            if (dependentCount > 5) score += 2;
+            else if (dependentCount > 2) score += 1;
+            
+            const licenses = extractLicenses(component);
+            if (licenses.includes('Unknown')) score += 1;
+            if (!component.purl) score += 1;
+            if (component.dependencies && component.dependencies.length > 10) score += 1;
+            
+            if (score >= 5) return { level: 'high', score };
+            if (score >= 3) return { level: 'medium', score };
+            return { level: 'low', score };
+        }
+        
+        function displayResults() {
+            document.getElementById('totalComponents').textContent = analysisData.summary.total;
+            document.getElementById('directCount').textContent = analysisData.summary.direct;
+            document.getElementById('transitiveCount').textContent = analysisData.summary.transitive;
+            document.getElementById('allBadge').textContent = analysisData.summary.total;
+            document.getElementById('directBadge').textContent = analysisData.summary.direct;
+            document.getElementById('transitiveBadge').textContent = analysisData.summary.transitive;
+            
+            allComponents = analysisData.components;
+            filteredComponents = [...allComponents];
+            currentPage = 1;
+            expandedRows.clear();
+            
+            // Generate insights content
+            generateInsightsContent();
+            
+            renderTable();
+            
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function generateInsightsContent() {
+            const insightsDiv = document.getElementById('insightsContent');
+            
+            // Analyze SBOM structure
+            const mainComponentRef = rawSBOMData.metadata?.component?.['bom-ref'];
+            const mainComponentName = rawSBOMData.metadata?.component?.name || 'Unknown';
+            const hasMainComponentInDeps = rawSBOMData.dependencies?.some(d => d.ref === mainComponentRef);
+            
+            const totalComponents = rawSBOMData.components?.length || 0;
+            const totalDependencyEntries = rawSBOMData.dependencies?.length || 0;
+            
+            // Count dependency relationships
+            let entriesWithDeps = 0;
+            let entriesWithoutDeps = 0;
+            let totalDepRelationships = 0;
+            
+            rawSBOMData.dependencies?.forEach(dep => {
+                const depCount = dep.dependsOn?.length || 0;
+                totalDepRelationships += depCount;
+                if (depCount > 0) {
+                    entriesWithDeps++;
+                } else {
+                    entriesWithoutDeps++;
+                }
+            });
+            
+            // Find components referenced as dependencies
+            const referencedAsDeps = new Set();
+            rawSBOMData.dependencies?.forEach(dep => {
+                dep.dependsOn?.forEach(ref => referencedAsDeps.add(ref));
+            });
+            
+            // Find root candidates (not depended upon)
+            const allDepRefs = new Set(rawSBOMData.dependencies?.map(d => d.ref) || []);
+            const rootCandidates = [...allDepRefs].filter(ref => !referencedAsDeps.has(ref));
+            
+            // Determine SBOM quality
+            const hasProperStructure = hasMainComponentInDeps && totalDepRelationships > 0;
+            const isFlatInventory = totalDepRelationships === 0 || entriesWithoutDeps === totalDependencyEntries;
+            
+            let html = '';
+            
+            // Status Banner
+            if (hasProperStructure) {
+                html += `
+                    <div style="background: #defbe6; border-left: 4px solid var(--success); padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span style="font-size: 1.5rem;">✅</span>
+                            <strong style="font-size: 1.125rem; color: var(--success);">Well-Structured SBOM</strong>
+                        </div>
+                        <p style="margin: 0; color: var(--text); font-size: 0.875rem;">
+                            This SBOM has a proper dependency graph structure with ${analysisData.summary.direct} direct dependencies and ${analysisData.summary.transitive} transitive dependencies clearly identified.
+                        </p>
+                    </div>
+                `;
+            } else if (isFlatInventory) {
+                html += `
+                    <div style="background: #fcf4d6; border-left: 4px solid var(--warning); padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span style="font-size: 1.5rem;">⚠️</span>
+                            <strong style="font-size: 1.125rem; color: #8a6d00;">Flat Inventory SBOM</strong>
+                        </div>
+                        <p style="margin: 0; color: var(--text); font-size: 0.875rem;">
+                            This SBOM is essentially a component inventory without dependency relationships. Direct vs. transitive dependencies cannot be determined.
+                        </p>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div style="background: #fff1f1; border-left: 4px solid var(--danger); padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span style="font-size: 1.5rem;">❌</span>
+                            <strong style="font-size: 1.125rem; color: var(--danger);">Incomplete SBOM Structure</strong>
+                        </div>
+                        <p style="margin: 0; color: var(--text); font-size: 0.875rem;">
+                            This SBOM has structural issues that prevent accurate dependency analysis.
+                        </p>
+                    </div>
+                `;
+            }
+            
+            // SBOM Overview
+            html += `
+                <div style="background: #f0f7ff; border: 1px solid #d0e2ff; border-radius: 6px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--primary);">📋 SBOM Overview</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.25rem;">Format</div>
+                            <div style="font-weight: 600;">${rawSBOMData.bomFormat} ${rawSBOMData.specVersion}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.25rem;">Main Component</div>
+                            <div style="font-weight: 600;">${escapeHtml(mainComponentName)}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.25rem;">Total Components</div>
+                            <div style="font-weight: 600; font-size: 1.5rem; color: var(--primary);">${totalComponents}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.25rem;">Dependency Entries</div>
+                            <div style="font-weight: 600; font-size: 1.5rem; color: var(--primary);">${totalDependencyEntries}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Structure Analysis
+            html += `
+                <div style="background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--text);">🔍 Structure Analysis</h3>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text);">Components Section</h4>
+                        <ul style="margin: 0; padding-left: 1.5rem; line-height: 1.8;">
+                            <li><strong>${totalComponents} total components</strong> listed with metadata (name, version, licenses, hashes, etc.)</li>
+                            <li>This is the <strong>complete inventory</strong> of all software items in the SBOM</li>
+                            <li>Components include both direct and transitive dependencies</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text);">Dependencies Section</h4>
+                        <ul style="margin: 0; padding-left: 1.5rem; line-height: 1.8;">
+                            <li><strong>${totalDependencyEntries} dependency entries</strong> in the dependencies array</li>
+                            <li><strong>${entriesWithDeps} entries</strong> have dependencies (non-empty <code>dependsOn</code> arrays)</li>
+                            <li><strong>${entriesWithoutDeps} entries</strong> have no dependencies (empty <code>dependsOn</code> arrays)</li>
+                            <li><strong>${totalDepRelationships} total dependency relationships</strong> defined</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text);">Main Component Status</h4>
+                        ${hasMainComponentInDeps ? `
+                            <div style="background: #defbe6; padding: 0.75rem; border-radius: 4px; border-left: 3px solid var(--success);">
+                                <strong style="color: var(--success);">✓ Main component found in dependencies section</strong><br>
+                                <span style="font-size: 0.875rem; color: var(--text-secondary);">
+                                    The main component (${escapeHtml(mainComponentName)}) has a dependency entry, allowing direct dependencies to be identified.
+                                </span>
+                            </div>
+                        ` : `
+                            <div style="background: #fff1f1; padding: 0.75rem; border-radius: 4px; border-left: 3px solid var(--danger);">
+                                <strong style="color: var(--danger);">✗ Main component NOT in dependencies section</strong><br>
+                                <span style="font-size: 0.875rem; color: var(--text-secondary);">
+                                    The main component (${escapeHtml(mainComponentName)}) has no dependency entry. This is a structural issue - direct dependencies cannot be definitively identified.
+                                </span>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+            
+            // Direct Dependencies Explanation
+            html += `
+                <div style="background: #defbe6; border: 1px solid var(--success); border-radius: 6px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--success);">
+                        📦 Direct Dependencies: ${analysisData.summary.direct}
+                    </h3>
+                    
+                    ${hasMainComponentInDeps ? `
+                        <p style="margin-bottom: 1rem; line-height: 1.6;">
+                            <strong>Direct dependencies</strong> are components explicitly declared as dependencies of the main component.
+                            They are found by looking at the main component's entry in the dependencies section and examining its <code>dependsOn</code> array.
+                        </p>
+                        <div style="background: white; padding: 1rem; border-radius: 4px; border-left: 3px solid var(--success);">
+                            <strong>How they're identified:</strong>
+                            <ol style="margin: 0.5rem 0 0 1.5rem; line-height: 1.8;">
+                                <li>Find the main component's <code>bom-ref</code> in the metadata section</li>
+                                <li>Locate that <code>bom-ref</code> in the dependencies section</li>
+                                <li>The components listed in its <code>dependsOn</code> array are the direct dependencies</li>
+                            </ol>
+                        </div>
+                    ` : `
+                        <p style="margin-bottom: 1rem; line-height: 1.6;">
+                            <strong>Cannot determine direct dependencies</strong> because the main component has no entry in the dependencies section.
+                        </p>
+                        <div style="background: white; padding: 1rem; border-radius: 4px; border-left: 3px solid var(--warning);">
+                            <strong>Workaround used:</strong><br>
+                            <span style="font-size: 0.875rem;">
+                                Identified ${rootCandidates.length} "root candidates" (components not depended upon by others) as potential direct dependencies,
+                                but this is not definitive without the main component's dependency entry.
+                            </span>
+                        </div>
+                    `}
+                </div>
+            `;
+            
+            // Transitive Dependencies Explanation
+            html += `
+                <div style="background: #fcf4d6; border: 1px solid var(--warning); border-radius: 6px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: #8a6d00;">
+                        🔗 Transitive Dependencies: ${analysisData.summary.transitive}
+                    </h3>
+                    
+                    ${totalDepRelationships > 0 ? `
+                        <p style="margin-bottom: 1rem; line-height: 1.6;">
+                            <strong>Transitive dependencies</strong> (also called indirect dependencies) are components that your direct dependencies depend on.
+                            They are pulled in automatically through the dependency chain.
+                        </p>
+                        <div style="background: white; padding: 1rem; border-radius: 4px; border-left: 3px solid var(--warning);">
+                            <strong>How they're identified:</strong>
+                            <ol style="margin: 0.5rem 0 0 1.5rem; line-height: 1.8;">
+                                <li>Start with the direct dependencies</li>
+                                <li>Look at each direct dependency's <code>dependsOn</code> array</li>
+                                <li>Those components are transitive dependencies (1 level deep)</li>
+                                <li>Recursively follow the chain to find all transitive dependencies</li>
+                            </ol>
+                        </div>
+                        <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6;">
+                            <strong>Note:</strong> ${referencedAsDeps.size} components are referenced as dependencies by other components in this SBOM.
+                        </p>
+                    ` : `
+                        <p style="margin-bottom: 1rem; line-height: 1.6;">
+                            <strong>Cannot determine transitive dependencies</strong> because there are no dependency relationships defined in this SBOM.
+                        </p>
+                        <div style="background: white; padding: 1rem; border-radius: 4px; border-left: 3px solid var(--danger);">
+                            <strong>Issue:</strong><br>
+                            <span style="font-size: 0.875rem;">
+                                All ${totalDependencyEntries} dependency entries have empty <code>dependsOn</code> arrays.
+                                This SBOM is a flat inventory without relationship information.
+                            </span>
+                        </div>
+                    `}
+                </div>
+            `;
+            
+            // Understanding the Results
+            html += `
+                <div style="background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 1.5rem;">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--text);">💡 Understanding the Results</h3>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem;">What the tabs show:</h4>
+                        <ul style="margin: 0; padding-left: 1.5rem; line-height: 1.8;">
+                            <li><strong>All Dependencies:</strong> Every component in the SBOM (${analysisData.summary.total} total)</li>
+                            <li><strong>Direct Only:</strong> Components directly declared as dependencies (${analysisData.summary.direct})</li>
+                            <li><strong>Transitive Only:</strong> Components pulled in through the dependency chain (${analysisData.summary.transitive})</li>
+                        </ul>
+                    </div>
+                    
+                    ${hasProperStructure ? `
+                        <div style="background: #f0f7ff; padding: 1rem; border-radius: 4px; border-left: 3px solid var(--primary);">
+                            <strong>✓ Accurate Analysis</strong><br>
+                            <span style="font-size: 0.875rem; color: var(--text-secondary);">
+                                This SBOM has proper structure, so the direct/transitive classification is accurate and reliable for supply chain analysis.
+                            </span>
+                        </div>
+                    ` : `
+                        <div style="background: #fff1f1; padding: 1rem; border-radius: 4px; border-left: 3px solid var(--danger);">
+                            <strong>⚠️ Limited Analysis</strong><br>
+                            <span style="font-size: 0.875rem; color: var(--text-secondary);">
+                                Due to structural limitations, the direct/transitive classification may not be accurate.
+                                This SBOM should be regenerated with proper dependency relationships for accurate supply chain analysis.
+                            </span>
+                        </div>
+                    `}
+                </div>
+            `;
+            
+            insightsDiv.innerHTML = html;
+        }
+        
+        function renderTable(callback) {
+            // Skip render if we're in the middle of navigation (unless this IS the navigation render)
+            if (isNavigating && !callback) {
+                console.log('renderTable: Skipped due to navigation in progress');
+                return;
+            }
+            
+            const tbody = document.getElementById('dependencyTableBody');
+            console.log('renderTable: tbody element:', tbody);
+            tbody.innerHTML = '';
+            
+            const totalItems = filteredComponents.length;
+            const itemsPerPage = pageSize === 'all' ? totalItems : parseInt(pageSize);
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = pageSize === 'all' ? totalItems : Math.min(startIndex + itemsPerPage, totalItems);
+            const pageComponents = filteredComponents.slice(startIndex, endIndex);
+            
+            console.log('renderTable: Will render', pageComponents.length, 'components');
+            
+            pageComponents.forEach((comp, index) => {
+                const rowId = `row-${startIndex + index}`;
+                const expandedId = `expanded-${startIndex + index}`;
+                
+                const tr = document.createElement('tr');
+                tr.className = comp.type;
+                tr.id = rowId;
+                tr.innerHTML = `
+                    <td class="component-name">${escapeHtml(comp.name)}</td>
+                    <td>${escapeHtml(comp.version)}</td>
+                    <td><span class="type-badge ${comp.type}">${comp.type}</span></td>
+                    <td>${escapeHtml(comp.license)}</td>
+                    <td><span class="risk-level ${comp.risk.level}">${comp.risk.level}</span></td>
+                    <td>${comp.depth}</td>
+                    <td>${comp.dependencies.length}</td>
+                `;
+                tr.addEventListener('click', () => toggleRow(rowId, expandedId, comp));
+                tbody.appendChild(tr);
+                
+                const expandedTr = document.createElement('tr');
+                expandedTr.className = 'expanded-row';
+                expandedTr.id = expandedId;
+                expandedTr.innerHTML = `
+                    <td colspan="7">
+                        <div class="expanded-content" id="content-${expandedId}">
+                            Loading...
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(expandedTr);
+            });
+            
+            console.log('renderTable: Appended', pageComponents.length * 2, 'rows to tbody');
+            console.log('renderTable: tbody.children.length =', tbody.children.length);
+            
+            document.getElementById('paginationInfo').textContent =
+                `Showing ${startIndex + 1}-${endIndex} of ${totalItems}`;
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+            
+            // Use requestAnimationFrame to ensure DOM updates are complete
+            if (callback) {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(callback);
+                });
+            }
+        }
+        
+        function toggleRow(rowId, expandedId, component) {
+            const mainRow = document.getElementById(rowId);
+            const expandedRow = document.getElementById(expandedId);
+            const contentDiv = document.getElementById(`content-${expandedId}`);
+            
+            if (expandedRows.has(rowId)) {
+                expandedRow.classList.remove('show');
+                mainRow.classList.remove('expanded');
+                expandedRows.delete(rowId);
+            } else {
+                expandedRow.classList.add('show');
+                mainRow.classList.add('expanded');
+                expandedRows.add(rowId);
+                contentDiv.innerHTML = generateRationaleContent(component);
+            }
+        }
+        
+        function generateRationaleContent(component) {
+            const isDirect = component.type === 'direct';
+            const purpose = inferComponentPurpose(component.name);
+            
+            // Find what introduces this component (for transitive deps)
+            let introducedBy = [];
+            if (!isDirect) {
+                introducedBy = findWhatIntroducesComponent(component.bom_ref);
+            }
+            
+            // Get direct dependencies this component brings in
+            let bringsIn = [];
+            if (component.dependencies.length > 0) {
+                bringsIn = component.dependencies.map(depRef => {
+                    const depComp = allComponents.find(c => c.bom_ref === depRef);
+                    return depComp || { name: depRef, bom_ref: depRef };
+                });
+            }
+            
+            let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1rem;">';
+            
+            html += `
+                <div class="rationale-section">
+                    <h4>📋 Why This Dependency Exists</h4>
+                    <ul>
+                        <li><strong>Type:</strong> ${isDirect ? 'Direct' : 'Transitive (Indirect)'}</li>
+                        ${!isDirect && introducedBy.length > 0 ? `
+                            <li><strong>Introduced By:</strong><br>
+                                <div style="margin-top: 0.5rem; padding-left: 1rem;">
+                                    ${introducedBy.slice(0, 5).map(intro => {
+                                        const introComp = allComponents.find(c => c.bom_ref === intro);
+                                        if (introComp) {
+                                            return `<a href="#" onclick="jumpToComponent('${escapeHtml(introComp.bom_ref)}', event); return false;" style="display: block; color: var(--primary); text-decoration: none; padding: 0.25rem 0; font-weight: 600;">→ ${escapeHtml(introComp.name)} ${escapeHtml(introComp.version)}</a>`;
+                                        }
+                                        return '';
+                                    }).join('')}
+                                    ${introducedBy.length > 5 ? `<span style="font-size: 0.75rem; color: var(--text-secondary);">...and ${introducedBy.length - 5} more</span>` : ''}
+                                </div>
+                            </li>
+                        ` : ''}
+                        <li><strong>Depth:</strong> ${component.depth} level${component.depth !== 1 ? 's' : ''} deep</li>
+                        ${purpose ? `<li><strong>Purpose:</strong> ${purpose}</li>` : ''}
+                        ${bringsIn.length > 0 ? `
+                            <li><strong>Brings In:</strong> ${bringsIn.length} transitive ${bringsIn.length === 1 ? 'dependency' : 'dependencies'}<br>
+                                <div style="margin-top: 0.5rem; padding-left: 1rem; max-height: 200px; overflow-y: auto;">
+                                    ${bringsIn.slice(0, 10).map(dep => {
+                                        return `<a href="#" onclick="jumpToComponent('${escapeHtml(dep.bom_ref)}', event); return false;" style="display: block; color: var(--primary); text-decoration: none; padding: 0.25rem 0;">→ ${escapeHtml(dep.name)} ${dep.version ? escapeHtml(dep.version) : ''}</a>`;
+                                    }).join('')}
+                                    ${bringsIn.length > 10 ? `<span style="font-size: 0.75rem; color: var(--text-secondary);">...and ${bringsIn.length - 10} more</span>` : ''}
+                                </div>
+                            </li>
+                        ` : '<li>Leaf dependency (no sub-dependencies)</li>'}
+                    </ul>
+                </div>
+            `;
+            
+            html += `
+                <div class="rationale-section">
+                    <h4>⚠️ Risk Assessment</h4>
+                    <ul>
+                        <li><strong>Risk Level:</strong> <span class="risk-level ${component.risk.level}">${component.risk.level.toUpperCase()}</span> (score: ${component.risk.score})</li>
+                        ${!isDirect ? '<li>⚠️ Transitive - may not be explicitly reviewed</li>' : '<li>✓ Direct dependency - intentionally selected</li>'}
+                        ${component.depth > 2 ? `<li>⚠️ Deep dependency chain (${component.depth} levels)</li>` : '<li>✓ Shallow dependency depth</li>'}
+                        ${component.dependents.length > 0 ? 
+                            `<li><strong>Blast Radius:</strong> ${component.dependents.length} component${component.dependents.length !== 1 ? 's' : ''} depend on this</li>` : 
+                            '<li>✓ No other components depend on this</li>'}
+                    </ul>
+                </div>
+            `;
+            
+            const hasVersion = !!component.version;
+            const hasPurl = !!component.purl;
+            const hasLicense = !component.licenses.includes('Unknown');
+            
+            html += `
+                <div class="rationale-section">
+                    <h4>✅ NTIA Compliance</h4>
+                    <ul>
+                        <li>${hasVersion ? '✓' : '✗'} Component Name & Version</li>
+                        <li>${hasPurl ? '✓' : '⚠️'} Unique Identifier (PURL)</li>
+                        <li>${hasLicense ? '✓' : '⚠️'} License: ${component.licenses.join(', ')}</li>
+                        <li>✓ Dependency Relationship Documented</li>
+                    </ul>
+                </div>
+            `;
+            
+            html += `
+                <div class="rationale-section">
+                    <h4>📦 Additional Details</h4>
+                    <ul>
+                        <li><strong>Component Type:</strong> ${component.componentType}</li>
+                        ${component.group ? `<li><strong>Group:</strong> ${escapeHtml(component.group)}</li>` : ''}
+                        ${component.purl ? `<li><strong>PURL:</strong> <code style="font-size: 0.75rem; word-break: break-all;">${escapeHtml(component.purl)}</code></li>` : ''}
+                    </ul>
+                </div>
+            `;
+            
+            html += '</div>';
+            return html;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function findWhatIntroducesComponent(bomRef) {
+            // Find which DIRECT dependencies ultimately introduce this transitive component
+            const directIntroducers = new Set();
+            
+            // First, find all components that directly depend on this component
+            const immediateParents = [];
+            allComponents.forEach(comp => {
+                if (comp.dependencies && comp.dependencies.includes(bomRef)) {
+                    immediateParents.push(comp.bom_ref);
+                }
+            });
+            
+            // For each immediate parent, trace back to find the direct dependency
+            immediateParents.forEach(parentRef => {
+                const directDep = traceToDirectDependency(parentRef);
+                if (directDep) {
+                    directIntroducers.add(directDep);
+                }
+            });
+            
+            return Array.from(directIntroducers);
+        }
+        
+        function traceToDirectDependency(bomRef) {
+            // If this component is already direct, return it
+            const component = allComponents.find(c => c.bom_ref === bomRef);
+            if (!component) return null;
+            if (component.type === 'direct') return bomRef;
+            
+            // Otherwise, find what depends on it and recurse
+            const parents = [];
+            allComponents.forEach(comp => {
+                if (comp.dependencies && comp.dependencies.includes(bomRef)) {
+                    parents.push(comp.bom_ref);
+                }
+            });
+            
+            // Trace each parent back to a direct dependency
+            for (const parentRef of parents) {
+                const directDep = traceToDirectDependency(parentRef);
+                if (directDep) return directDep;
+            }
+            
+            return null;
+        }
+
+        function highlightAndExpandRow(rowIndex, itemsPerPage) {
+            console.log('highlightAndExpandRow called');
+            
+            // Simple approach: just wait long enough for everything to settle
+            setTimeout(() => {
+                const tbody = document.getElementById('dependencyTableBody');
+                const allRows = Array.from(tbody.querySelectorAll('tr'));
+                const mainRows = allRows.filter(row => !row.classList.contains('expanded-row'));
+                
+                console.log('Total main rows found:', mainRows.length);
+                
+                const targetRowIndex = rowIndex % itemsPerPage;
+                console.log('Target row index on page:', targetRowIndex);
+                
+                const targetRow = mainRows[targetRowIndex];
+                if (targetRow) {
+                    console.log('Found target row, scrolling and highlighting');
+                    targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    targetRow.style.backgroundColor = '#fff3cd';
+                    setTimeout(() => {
+                        targetRow.style.backgroundColor = '';
+                    }, 2000);
+                    
+                    // Auto-expand the row by clicking it
+                    console.log('Clicking row to expand');
+                    targetRow.click();
+                } else {
+                    console.error('Target row not found at index:', targetRowIndex);
+                    console.error('Available indices: 0 to', mainRows.length - 1);
+                }
+                
+                // Clear navigation flag
+                isNavigating = false;
+                console.log('Navigation complete, flag cleared');
+            }, 500); // Wait half a second for everything to settle
+        }
+        
+        function jumpToComponent(bomRef, event) {
+            // Prevent any default behavior and stop propagation
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+            }
+            
+            // Set navigation flag to prevent interference
+            isNavigating = true;
+            console.log('jumpToComponent called with bomRef:', bomRef);
+            
+            // First, find the component in allComponents
+            const component = allComponents.find(c => c.bom_ref === bomRef);
+            if (!component) {
+                console.error('Component not found:', bomRef);
+                alert('Component not found in SBOM.');
+                return false;
+            }
+            
+            console.log('Found component:', component.name, component.version, 'Type:', component.type);
+            
+            // Clear search filter
+            const searchBox = document.getElementById('searchBox');
+            if (searchBox) {
+                searchBox.value = '';
+            }
+            
+            // Switch to appropriate tab based on component type
+            const targetTab = component.type === 'direct' ? 'direct' :
+                             component.type === 'transitive' ? 'transitive' : 'all';
+            
+            console.log('Switching to tab:', targetTab);
+            
+            // Call switchTab directly with a callback to handle everything in one render cycle
+            switchTab(targetTab, () => {
+                console.log('After tab switch, filteredComponents length:', filteredComponents.length);
+                
+                // Find the component in the newly filtered list
+                const rowIndex = filteredComponents.findIndex(c => c.bom_ref === bomRef);
+                
+                console.log('Row index in filtered list:', rowIndex);
+                
+                if (rowIndex === -1) {
+                    console.error('Component not found in filtered list after tab switch');
+                    alert('Component not found after tab switch. Component: ' + component.name + ' ' + component.version);
+                    return;
+                }
+                
+                // Get current page size setting
+                const pageSize = document.getElementById('pageSize').value;
+                const totalItems = filteredComponents.length;
+                const itemsPerPage = pageSize === 'all' ? totalItems : parseInt(pageSize);
+                
+                // Calculate which page it's on
+                const page = Math.floor(rowIndex / itemsPerPage) + 1;
+                
+                console.log('Page size:', pageSize, 'Items per page:', itemsPerPage, 'Target page:', page);
+                
+                // If we need to change pages, do it now
+                if (currentPage !== page) {
+                    currentPage = page;
+                    // Render again with the correct page
+                    renderTable(() => {
+                        highlightAndExpandRow(rowIndex, itemsPerPage);
+                    });
+                } else {
+                    // Already on correct page, just highlight
+                    highlightAndExpandRow(rowIndex, itemsPerPage);
+                }
+            });
+            
+            return false;
+        }
+
+        function inferComponentPurpose(name) {
+            const nameLower = name.toLowerCase();
+            const patterns = {
+                'log': 'Logging functionality', 'test': 'Testing framework', 'express': 'Web framework',
+                'react': 'UI library', 'axios': 'HTTP client', 'lodash': 'Utility functions',
+                'moment': 'Date/time manipulation', 'crypto': 'Cryptographic operations',
+                'jwt': 'Authentication tokens', 'db': 'Database operations', 'parser': 'Data parsing',
+                'validator': 'Data validation', 'config': 'Configuration management',
+                'cli': 'Command-line interface', 'api': 'API functionality',
+                'http': 'HTTP protocol handling', 'async': 'Asynchronous operations',
+                'cache': 'Caching functionality', 'security': 'Security features'
+            };
+            
+            for (const [key, purpose] of Object.entries(patterns)) {
+                if (nameLower.includes(key)) return purpose;
+            }
+            return null;
+        }
+        
+        function handleSearch() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            if (!searchTerm) {
+                filteredComponents = [...allComponents];
+            } else {
+                filteredComponents = allComponents.filter(comp => 
+                    comp.name.toLowerCase().includes(searchTerm) ||
+                    comp.version.toLowerCase().includes(searchTerm) ||
+                    comp.license.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            currentPage = 1;
+            expandedRows.clear();
+            renderTable();
+        }
+        
+        function switchTab(tab, callback) {
+            currentTab = tab;
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+            
+            // Hide/show appropriate content
+            const insightsTab = document.getElementById('insightsTab');
+            const tableTab = document.getElementById('tableTab');
+            
+            if (tab === 'insights') {
+                insightsTab.style.display = 'block';
+                tableTab.style.display = 'none';
+                return; // Don't render table for insights tab
+            } else {
+                insightsTab.style.display = 'none';
+                tableTab.style.display = 'block';
+            }
+            
+            if (tab === 'all') {
+                filteredComponents = [...allComponents];
+            } else if (tab === 'direct') {
+                filteredComponents = allComponents.filter(c => c.type === 'direct');
+            } else if (tab === 'transitive') {
+                filteredComponents = allComponents.filter(c => c.type === 'transitive');
+            }
+            
+            currentPage = 1;
+            expandedRows.clear();
+            renderTable(callback);
+        }
+        
+        function handleSort(column) {
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+            
+            document.querySelectorAll('.dependency-table th').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+            });
+            const th = document.querySelector(`th[data-sort="${column}"]`);
+            th.classList.add(sortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
+            
+            filteredComponents.sort((a, b) => {
+                let aVal, bVal;
+                
+                switch(column) {
+                    case 'name': aVal = a.name.toLowerCase(); bVal = b.name.toLowerCase(); break;
+                    case 'version': aVal = a.version; bVal = b.version; break;
+                    case 'type': aVal = a.type; bVal = b.type; break;
+                    case 'license': aVal = a.license; bVal = b.license; break;
+                    case 'risk': aVal = a.risk.score; bVal = b.risk.score; break;
+                    case 'depth': aVal = a.depth; bVal = b.depth; break;
+                    case 'deps': aVal = a.dependencies.length; bVal = b.dependencies.length; break;
+                    default: return 0;
+                }
+                
+                if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            renderTable();
+        }
+        
+        function handlePageSizeChange() {
+            pageSize = document.getElementById('pageSize').value;
+            currentPage = 1;
+            expandedRows.clear();
+            renderTable();
+        }
+        
+        function changePage(delta) {
+            currentPage += delta;
+            expandedRows.clear();
+            renderTable();
+            document.querySelector('.table-section').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Component Lookup Functions
+        function lookupComponent() {
+            const name = document.getElementById('lookupName').value.trim();
+            const version = document.getElementById('lookupVersion').value.trim();
+            const resultsDiv = document.getElementById('lookupResults');
+            const resultsContent = document.getElementById('lookupResultsContent');
+            
+            if (!name) {
+                alert('Please enter a component name');
+                return;
+            }
+            
+            if (!analysisData || !allComponents.length) {
+                alert('Please analyze an SBOM first');
+                return;
+            }
+            
+            // Search for matching components
+            let matches = allComponents.filter(comp =>
+                comp.name.toLowerCase() === name.toLowerCase()
+            );
+            
+            // Filter by version if provided
+            if (version) {
+                matches = matches.filter(comp =>
+                    comp.version.toLowerCase() === version.toLowerCase()
+                );
+            }
+            
+            // Display results
+            if (matches.length === 0) {
+                resultsContent.innerHTML = `
+                    <div style="padding: 1rem; background: #fff1f1; border-left: 3px solid var(--danger); border-radius: 4px;">
+                        <strong>No matches found</strong><br>
+                        <span style="font-size: 0.875rem; color: var(--text-secondary);">
+                            No component found with name "${escapeHtml(name)}"${version ? ` and version "${escapeHtml(version)}"` : ''}
+                        </span>
+                    </div>
+                `;
+            } else if (matches.length === 1) {
+                // Single match - show full rationale
+                const comp = matches[0];
+                resultsContent.innerHTML = `
+                    <div style="padding: 1rem; background: #defbe6; border-left: 3px solid var(--success); border-radius: 4px; margin-bottom: 1rem;">
+                        <strong>✓ Found 1 match</strong>
+                    </div>
+                    <div style="background: var(--bg); padding: 1.5rem; border-radius: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 2px solid var(--border);">
+                            <div>
+                                <h4 style="font-size: 1.25rem; font-weight: 600; color: var(--primary); margin-bottom: 0.5rem;">${escapeHtml(comp.name)}</h4>
+                                <div style="font-size: 0.875rem; color: var(--text-secondary);">Version: ${escapeHtml(comp.version)}</div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <span class="type-badge ${comp.type}">${comp.type}</span>
+                                <span class="risk-level ${comp.risk.level}">${comp.risk.level}</span>
+                            </div>
+                        </div>
+                        ${generateRationaleContent(comp)}
+                    </div>
+                `;
+            } else {
+                // Multiple matches - show list
+                resultsContent.innerHTML = `
+                    <div style="padding: 1rem; background: #fcf4d6; border-left: 3px solid var(--warning); border-radius: 4px; margin-bottom: 1rem;">
+                        <strong>Found ${matches.length} matches</strong><br>
+                        <span style="font-size: 0.875rem; color: var(--text-secondary);">
+                            Multiple versions found. Click on a component to see details.
+                        </span>
+                    </div>
+                    <div style="display: grid; gap: 0.75rem;">
+                        ${matches.map((comp, index) => `
+                            <div onclick="showLookupDetail(${index})" style="padding: 1rem; background: var(--card); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.borderColor='var(--border)'; this.style.boxShadow='none'">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong style="color: var(--primary);">${escapeHtml(comp.name)}</strong>
+                                        <span style="color: var(--text-secondary); margin-left: 0.5rem;">${escapeHtml(comp.version)}</span>
+                                    </div>
+                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                        <span class="type-badge ${comp.type}">${comp.type}</span>
+                                        <span class="risk-level ${comp.risk.level}">${comp.risk.level}</span>
+                                        <span style="font-size: 0.75rem; color: var(--text-secondary);">Depth: ${comp.depth}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                // Store matches for detail view
+                window.lookupMatches = matches;
+            }
+            
+            resultsDiv.style.display = 'block';
+            resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        function showLookupDetail(index) {
+            const comp = window.lookupMatches[index];
+            const resultsContent = document.getElementById('lookupResultsContent');
+            
+            resultsContent.innerHTML = `
+                <div style="padding: 1rem; background: #defbe6; border-left: 3px solid var(--success); border-radius: 4px; margin-bottom: 1rem;">
+                    <strong>✓ Showing details</strong>
+                    <button onclick="lookupComponent()" style="float: right; padding: 0.25rem 0.75rem; background: var(--card); border: 1px solid var(--border); border-radius: 4px; font-size: 0.75rem; cursor: pointer;">← Back to list</button>
+                </div>
+                <div style="background: var(--bg); padding: 1.5rem; border-radius: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 2px solid var(--border);">
+                        <div>
+                            <h4 style="font-size: 1.25rem; font-weight: 600; color: var(--primary); margin-bottom: 0.5rem;">${escapeHtml(comp.name)}</h4>
+                            <div style="font-size: 0.875rem; color: var(--text-secondary);">Version: ${escapeHtml(comp.version)}</div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <span class="type-badge ${comp.type}">${comp.type}</span>
+                            <span class="risk-level ${comp.risk.level}">${comp.risk.level}</span>
+                        </div>
+                    </div>
+                    ${generateRationaleContent(comp)}
+                </div>
+            `;
+        }
+        
+        function clearLookup() {
+            document.getElementById('lookupName').value = '';
+            document.getElementById('lookupVersion').value = '';
+            document.getElementById('lookupResults').style.display = 'none';
+            document.getElementById('lookupResultsContent').innerHTML = '';
+            window.lookupMatches = null;
+        }
+        
+        // Allow Enter key to trigger lookup
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('lookupName')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') lookupComponent();
+            });
+            document.getElementById('lookupVersion')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') lookupComponent();
+            });
+        });
+    </script>
+</body>
+</html>
