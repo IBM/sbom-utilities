@@ -1,6 +1,6 @@
 # SBOM Quality Insights
 
-A comprehensive web-based tool for analyzing and validating CycloneDX Software Bill of Materials (SBOM) files. This application provides detailed insights into SBOM quality, compliance with NTIA minimum requirements, and automated fixes for common issues.
+A comprehensive web-based tool for analyzing and validating Software Bill of Materials (SBOM) files. This application supports both CycloneDX and SPDX 2.3 formats, providing detailed insights into SBOM quality, compliance with NTIA minimum requirements, and automated fixes for common issues. Note that enhanced functionality and validation features are primarily optimized for CycloneDX format.
 
 ## Features
 
@@ -81,9 +81,12 @@ Comprehensive view of all library and framework components:
 3. The application will automatically analyze and display results
 
 ### Supported Formats
-- **CycloneDX JSON** (versions 1.2, 1.3, 1.4, 1.5, 1.6)
+- **CycloneDX JSON** (versions 1.2, 1.3, 1.4, 1.5, 1.6) - Full feature support
+- **SPDX 2.3 JSON** - Basic support for component listing and metadata
 - File must be valid JSON format
-- Must contain CycloneDX SBOM structure
+- Must contain valid SBOM structure
+
+**Note:** Enhanced validation features (NTIA compliance checks, dependency validation, PURL quality analysis, and automated fixes) are primarily designed for and optimized with CycloneDX format SBOMs.
 
 ### Navigation
 - **Overview Tab**: High-level summary and quality indicators
@@ -154,14 +157,14 @@ SBOM Quality Insights/
 
 ## Known Limitations
 
-1. **CycloneDX Only**: Currently supports CycloneDX format only (SPDX support planned)
-2. **JSON Format**: XML format not supported
+1. **Format Support**: SPDX 2.3 support is basic (component listing and metadata only); enhanced validation features are optimized for CycloneDX format
+2. **JSON Format**: XML format not supported for either CycloneDX or SPDX
 3. **Browser Storage**: Large SBOMs (>5MB) use global variables instead of localStorage
 4. **Client-side Only**: Requires JavaScript enabled in browser
 
 ## Future Enhancements
 
-- SPDX format support
+- Enhanced SPDX format support with full validation features
 - Additional PURL quality checks
 - License compliance validation
 - Export reports to PDF
