@@ -18,7 +18,7 @@ Identifies components that fail to meet NTIA's minimum elements for SBOM:
 - **Component Name**: Missing or invalid component names
 - **Version**: Missing version information
 - **Unique Identifier**: Missing PURL, CPE, or other unique identifiers
-- **Dependency Relationships**: Missing or incomplete dependency information
+- **Dependency Relationships**: Missing or incomplete dependency information 
 
 **Features:**
 - Summary statistics showing count of components failing each criterion
