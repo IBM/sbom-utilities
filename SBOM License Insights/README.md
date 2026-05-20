@@ -4,7 +4,7 @@ A comprehensive, privacy-focused tool for analyzing Software Bill of Materials (
 
 ## 🔒 Privacy First
 
-**All analysis happens locally in your browser.** Your SBOM data—including company names, package names, versions, and license information—never leaves your device. The only external calls are optional registry lookups (PyPI, npm, etc.) that send only individual package names to retrieve license and release date information.
+**All analysis happens locally in your browser.** Your SBOM data—including company names, package names, versions, and license information—never leaves your device. The only external calls are optional registry lookups (PyPI, npm, etc.) that send only individual package names to retrieve license and release date information.  
 
 ## ✨ Features
 
