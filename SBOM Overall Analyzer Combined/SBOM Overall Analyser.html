@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://registry.npmjs.org https://pypi.org https://api.github.com https://crates.io https://api.nuget.org https://proxy.golang.org https://api.osv.dev https://search.maven.org https://repo1.maven.org https://api.allorigins.win https://corsproxy.io https://api.codetabs.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
 <title>SBOM Analyzer</title>
-<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js" crossorigin="anonymous"></script>
-<!-- Note: SRI hash should be generated using: curl -s https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js | openssl dgst -sha384 -binary | openssl base64 -A -->
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js"
+        integrity="sha384-y1EDLKX+c12E9ccR4NDC7//QPOzuGeYSRjbXngqmyrss3xGHTyrhaXmVuM2l6QMi"
+        crossorigin="anonymous"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   /* ── Carbon Design System – Gray 100 Theme ─────────────────────────────── */
@@ -1993,6 +1994,9 @@
 <input type="file" id="file-input" accept=".json,.xml,.spdx,.tv,.csv,.txt" style="display:none;">
 
 <script>
+// ─── Debug Mode (set to false in production) ──────────────────────────────────
+const DEBUG_MODE = false;
+
 // ─── License Database ────────────────────────────────────────────────────────
 const LICENSE_DB = {
   // HIGH RISK - Strong copyleft
@@ -3184,12 +3188,12 @@ async function retrieveAllUnknownFromMainTable() {
 
 // ── Fetch all unknown licenses (License Analysis tab) ────────────────────────
 async function fetchAllUnknownLicenses() {
-  console.log('fetchAllUnknownLicenses called');
+  if (DEBUG_MODE) console.log('fetchAllUnknownLicenses called');
   
   // Get all rows with unknown licenses that can be auto-retrieved
   const unknownRows = allRows.filter(r => r.risk === 'unknown' && canAutoRetrieve(r.ecosystem));
   
-  console.log('Unknown rows found:', unknownRows.length, unknownRows);
+  if (DEBUG_MODE) console.log('Unknown rows found:', unknownRows.length, unknownRows);
   
   if (unknownRows.length === 0) {
     showToast('No unknown licenses to fetch');
@@ -3217,7 +3221,7 @@ async function fetchAllUnknownLicenses() {
     // Process batch in parallel
     const results = await Promise.allSettled(
       batch.map(async (row) => {
-        console.log(`Fetching ${row.name} (${row.ecosystem})`);
+        if (DEBUG_MODE) console.log(`Fetching ${row.name} (${row.ecosystem})`);
         
         let result = null;
         
@@ -3243,15 +3247,15 @@ async function fetchAllUnknownLicenses() {
       if (promiseResult.status === 'fulfilled') {
         const { row, result } = promiseResult.value;
         if (result && result.license) {
-          console.log(`  ✓ Found: ${result.license} for ${row.name}`);
+          if (DEBUG_MODE) console.log(`  ✓ Found: ${result.license} for ${row.name}`);
           applyRetrievedLicense(row.name, result.license);
           found++;
         } else {
-          console.log(`  ✗ No license found for ${row.name}`);
+          if (DEBUG_MODE) console.log(`  ✗ No license found for ${row.name}`);
           notFound++;
         }
       } else {
-        console.error(`  ✕ Error:`, promiseResult.reason);
+        if (DEBUG_MODE) console.error(`  ✕ Error:`, promiseResult.reason);
         errors++;
       }
     });
@@ -3265,7 +3269,7 @@ async function fetchAllUnknownLicenses() {
     }
   }
 
-  console.log(`Complete: ${found} found, ${notFound} not found, ${errors} errors`);
+  if (DEBUG_MODE) console.log(`Complete: ${found} found, ${notFound} not found, ${errors} errors`);
 
   // Update badge
   const unknownRetrievable = allRows.filter(r => r.risk === 'unknown' && canAutoRetrieve(r.ecosystem)).length;
@@ -3339,6 +3343,11 @@ async function safeFetchText(url, opts = {}) {
   return await resp.text();
 }
 
+// SECURITY WARNING: This function uses third-party CORS proxy services that are NOT under IBM control.
+// These proxies can potentially intercept, log, or modify package metadata in transit.
+// Risk: Data leakage of SBOM component information to untrusted third parties.
+// Recommendation: Deploy this application in an environment with proper CORS configuration
+// or implement a trusted backend proxy service under organizational control.
 async function corsProxyFetchText(url) {
   const proxies = [
     async () => {
@@ -3372,7 +3381,7 @@ async function corsProxyFetchText(url) {
     } catch (e) {
       if (e instanceof ApiError && e.type === 'notfound') throw e;
       lastErr = e;
-      console.warn(`CORS proxy attempt failed:`, e.message);
+      if (DEBUG_MODE) console.warn(`CORS proxy attempt failed:`, e.message);
     }
   }
   throw new ApiError(
@@ -3416,7 +3425,7 @@ async function corsProxyFetch(url) {
       return await tryProxy();
     } catch (e) {
       lastErr = e;
-      console.warn(`CORS proxy attempt failed:`, e.message);
+      if (DEBUG_MODE) console.warn(`CORS proxy attempt failed:`, e.message);
     }
   }
   // All proxies failed
@@ -3813,7 +3822,7 @@ async function fetchMavenLicense(name, ver, purl) {
   } catch (e) {
     // If search API fails completely, try to construct POM URL directly if version is provided
     if (cleanVer) {
-      console.warn('Maven search API failed, attempting direct POM fetch with provided version');
+      if (DEBUG_MODE) console.warn('Maven search API failed, attempting direct POM fetch with provided version');
       const directPomUrl = `https://repo1.maven.org/maven2/${groupId.replace(/\./g, '/')}/${artifactId}/${cleanVer}/${artifactId}-${cleanVer}.pom`;
       
       let pomText;
@@ -4146,9 +4155,6 @@ function sortTable(key) {
 }
 
 function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-// Enhanced HTML escaping - replace the basic version above with additional protections
-function escHtmlEnhanced(s) {
   if (s === null || s === undefined) return '';
   return String(s)
     .replace(/&/g,'&amp;')
@@ -4158,6 +4164,7 @@ function escHtmlEnhanced(s) {
     .replace(/'/g,'&#x27;')
     .replace(/\//g,'&#x2F;');
 }
+
 
 // Additional security helper: Sanitize URLs to prevent javascript: protocol
 function sanitizeUrl(url) {
@@ -4178,7 +4185,6 @@ function isValidCveId(id) {
   if (!id || typeof id !== 'string') return false;
   // CVE format: CVE-YYYY-NNNNN (where YYYY is year, NNNNN is 4+ digits)
   return /^CVE-\d{4}-\d{4,}$/.test(id);
-}
 }
 
 // ─── Entry Points ─────────────────────────────────────────────────────────────
@@ -4823,13 +4829,13 @@ function buildSummaryView() {
   const unknown = allRows.filter(r => r.risk === 'unknown').length;
   const nc = allRows.filter(r => r.nc).length;
 
-  // Count CVEs (Critical and High severity)
-  const totalCriticalHighCves = cveEntries.reduce((sum, e) =>
-    sum + e.vulns.filter(v => ['Critical', 'High'].includes(v.severity)).length, 0
-  );
+  // Count components with Critical and High severity CVEs (consistent with CVE Analysis tab)
   const componentsWithCriticalHighCves = cveEntries.filter(e =>
     e.vulns.some(v => ['Critical', 'High'].includes(v.severity))
   ).length;
+  
+  // For display purposes, use component count (not total CVE count)
+  const totalCriticalHighCves = componentsWithCriticalHighCves;
 
   // Count outdated components (>2 years old or EOL)
   const twoYearsAgo = Date.now() - (2 * 365 * 24 * 60 * 60 * 1000);
@@ -6097,7 +6103,7 @@ async function fetchMavenReleaseDateAndLatest(name, ver, purl) {
   }
 
   // Debug: Log first doc to understand structure
-  if (docs.length > 0) {
+  if (DEBUG_MODE && docs.length > 0) {
     console.log(`Maven data for ${groupId}:${artifactId}:`, docs[0]);
   }
 
@@ -6121,7 +6127,7 @@ async function fetchMavenReleaseDateAndLatest(name, ver, purl) {
   if (cleanVer) {
     const versionDoc = docs.find(d => d.v === cleanVer);
     if (!versionDoc) {
-      console.warn(`Version ${cleanVer} not found for ${groupId}:${artifactId}, using latest`);
+      if (DEBUG_MODE) console.warn(`Version ${cleanVer} not found for ${groupId}:${artifactId}, using latest`);
     }
     releaseDate = versionDoc?.timestamp ? new Date(versionDoc.timestamp).toISOString() : latestReleaseDate;
   } else {
