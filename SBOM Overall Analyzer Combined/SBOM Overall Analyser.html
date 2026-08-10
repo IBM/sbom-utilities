@@ -2423,7 +2423,11 @@ function getPurlIssue(purl) {
   const type = body.slice(0, firstSlash);
   const remainder = body.slice(firstSlash + 1);
   if (!/^[a-z0-9.+-]+$/i.test(type)) return 'PURL type contains invalid characters';
-  if (!remainder || remainder.startsWith('@') || remainder.startsWith('?') || remainder.startsWith('#')) return 'PURL is missing package name';
+  // A scoped package (e.g. pkg:npm/@scope/name@version) is valid — remainder starts with '@'
+  // but must still contain a '/' followed by an actual name.
+  const isScopedWithName = remainder.startsWith('@') && remainder.indexOf('/') > 1;
+  if (!remainder || remainder.startsWith('?') || remainder.startsWith('#') ||
+      (remainder.startsWith('@') && !isScopedWithName)) return 'PURL is missing package name';
   if (/\s/.test(value)) return 'PURL must not contain spaces';
   return null;
 }
@@ -5140,11 +5144,10 @@ OVERALL HEALTH SCORE: ${healthScoreValue}/100
 ═══════════════════════════════════════════════════════════════════════════════
 
 Scoring Criteria:
-• Strong Copyleft Licenses (30%)
-• Non-Commercial Licenses (20%)
-• Unknown Licenses (20%)
-• Critical/High CVEs (25%)
-• Metadata Quality (5%)
+• License Risk Score          (30%) — proportion of components without high-risk licenses
+• CVE Score                   (30%) — proportion of components without critical/high CVEs
+• Component Age Score         (25%) — proportion of components not classified as outdated/EOL
+• NTIA Compliance Score       (15%) — proportion of components without NTIA minimum-element gaps
 
 KEY METRICS
 ───────────────────────────────────────────────────────────────────────────────

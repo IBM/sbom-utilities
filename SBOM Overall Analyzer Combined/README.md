@@ -4,7 +4,7 @@ A browser-based Software Bill of Materials (SBOM) analysis tool for reviewing de
 
 ## Overview
 
-SBOM Analyser is a client-side HTML application that parses CycloneDX and SPDX JSON SBOMs and provides:
+SBOM Analyser is a client-side HTML application that parses CycloneDX and SPDX SBOMs and provides:
 
 - License compliance and risk analysis
 - CVE analysis using OSV
@@ -28,8 +28,8 @@ Privacy-first design:
   - critical/high CVEs
   - NTIA gaps
 - Recommended actions
-- DOCX summary export
-- “Fetch All Missing Data” workflow when downstream analysis is incomplete
+- Plain-text (.txt) summary export
+- "Fetch All Missing Data" workflow when downstream analysis is incomplete
 
 ### SBOM Overall Quality
 - SBOM metadata cards:
@@ -61,7 +61,7 @@ Note:
   - permissive
   - caution / weak copyleft
   - critical / strong copyleft
-  - non-commercial
+  - non-commercial (tracked and badged separately)
   - unknown
 - Unknown-license retrieval from supported public registries
 - Inline retrieval guidance and apply flow
@@ -98,9 +98,24 @@ PyPI note:
   - 1.4
   - 1.5
   - 1.6
+- CycloneDX XML
+  - 1.2
+  - 1.3
+  - 1.4
+  - 1.5
+  - 1.6
 - SPDX JSON
   - 2.2
   - 2.3
+- SPDX Tag-Value (`.spdx`, `.tv`)
+  - any version with `PackageName:` / `SPDXVersion:` fields
+
+Additional informal input types accepted:
+- JSON array of `{name, version, license}` objects
+- CSV / plain-text package list (`.csv`, `.txt`)
+
+Note:
+- Informal input types (JSON array, CSV, plain-text) do not carry SBOM metadata such as format, spec version, or tool. Quality and NTIA checks are limited for these inputs.
 
 ## Getting started
 
@@ -111,8 +126,8 @@ PyPI note:
 ### Usage
 1. Open `SBOM Analyser.html` in a browser.
 2. Load an SBOM by:
-   - choosing a JSON file, or
-   - pasting JSON into the input area.
+   - choosing a file (.json, .xml, .spdx, .tv, .csv, .txt), or
+   - pasting content into the input area.
 3. Run analysis.
 4. Review:
    - Executive Summary
@@ -125,7 +140,7 @@ PyPI note:
    - CVEs
    - component ages
 6. Export:
-   - DOCX summary report
+   - plain-text (.txt) executive summary report
    - CSVs from detailed tabs
 
 ## Health score
@@ -135,15 +150,15 @@ The health score is weighted as follows:
 ```text
 Health Score =
   (License Score × 30%) +
-  (Age Score × 25%) +
-  (CVE Score × 30%) +
-  (NTIA Score × 15%)
+  (CVE Score     × 30%) +
+  (Age Score     × 25%) +
+  (NTIA Score    × 15%)
 ```
 
 ### Inputs
 - License Score: proportion of components without high-risk license findings
-- Age Score: proportion of components not classified as outdated/EOL
 - CVE Score: proportion of components without critical/high CVEs
+- Age Score: proportion of components not classified as outdated/EOL
 - NTIA Score: proportion of components without NTIA minimum-element gaps
 
 ### Ratings
@@ -163,6 +178,7 @@ Health Score =
   - GitHub
   - crates.io
   - NuGet
+  - Go (pkg.go.dev)
   - Maven Central
 - Vulnerabilities:
   - OSV
@@ -195,7 +211,6 @@ Current limitation:
 
 ## Limitations
 
-- JSON SBOM input only
 - Public registry coverage varies by ecosystem and package quality
 - Some packages require manual review
 - Public APIs may rate-limit or return incomplete metadata
@@ -218,13 +233,13 @@ Note:
 - Single-file HTML application
 - HTML/CSS/JavaScript
 - IBM Carbon-inspired dark UI
-- DOCX export via docx.js
+- DOCX export via docx.js (used for detailed report export)
 - Native browser APIs for parsing, rendering, and network access
 
 ## Contributing
 
 1. Update `SBOM Analyser.html`
-2. Test with representative CycloneDX and SPDX JSON files
+2. Test with representative CycloneDX and SPDX files
 3. Re-test:
    - summary scoring
    - quality tab counts/sub-tabs
@@ -247,5 +262,5 @@ Open an issue or document the problem with:
 
 ---
 
-**Version**: 1.0
-**Last Updated**: 2026-05-29
+**Version**: 1.1
+**Last Updated**: 2026-06-30
