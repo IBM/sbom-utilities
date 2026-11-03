@@ -1875,6 +1875,7 @@
           <th>Ecosystem</th>
           <th onclick="sortCveTable('maxSeverity')">Max Severity</th>
           <th>Details</th>
+          <th onclick="sortCveTable('published')" style="min-width:120px;">Published</th>
           <th style="min-width:200px;">Summary</th>
         </tr>
       </thead>
@@ -2961,7 +2962,7 @@ async function retrieveLicense(safeId, name, ver, eco) {
       showRetrieveResult(
         resultEl, 'success', '✓',
         result.license,
-        `Retrieved from ${result.source}${result.homepage ? ` · <a class="insight-link" href="${result.homepage}" target="_blank">view source</a>` : ''}`,
+        `Retrieved from ${result.source}${result.homepage ? ` · <a class="insight-link" href="${sanitizeUrl(result.homepage)}" target="_blank">view source</a>` : ''}`,
         result.license,
         row
       );
@@ -4460,7 +4461,7 @@ function renderRetrieveTable() {
     let licenseCell = '';
     if (status === 'pending') licenseCell = `<span class="rv-license-pending">—</span>`;
     else if (status === 'loading') licenseCell = `<span class="rv-license-pending">Fetching…</span>`;
-    else if (status === 'found') licenseCell = `<span class="rv-license-found">${escHtml(retrievedLicense)}</span>${source ? `<div style="font-size:10px;color:var(--cds-text-secondary);margin-top:2px;">via ${escHtml(source)}${homepage ? ` · <a class="insight-link" href="${homepage}" target="_blank">↗</a>` : ''}</div>` : ''}`;
+    else if (status === 'found') licenseCell = `<span class="rv-license-found">${escHtml(retrievedLicense)}</span>${source ? `<div style="font-size:10px;color:var(--cds-text-secondary);margin-top:2px;">via ${escHtml(source)}${homepage ? ` · <a class="insight-link" href="${sanitizeUrl(homepage)}" target="_blank">↗</a>` : ''}</div>` : ''}`;
     else if (status === 'applied') licenseCell = `<span class="rv-license-applied">✓ ${escHtml(retrievedLicense)}</span><div style="font-size:10px;color:var(--cds-link-primary);margin-top:2px;">Applied to SBOM</div>`;
     else if (status === 'notfound') licenseCell = `<span class="rv-license-notfound">Not in registry</span>`;
     else if (status === 'error') {
@@ -4762,6 +4763,7 @@ function normaliseOsvVulns(vulns) {
       summary: vuln.summary || vuln.details || '',
       severity: getOsvSeverity(vuln),
       aliases,
+      published: vuln.published || '',
       source: vuln.references?.[0]?.url || vuln.url || ''
     };
   });
@@ -5330,6 +5332,18 @@ function getVisibleCveEntries() {
     if (cveSortKey === 'status') {
       av = a.status || '';
       bv = b.status || '';
+    } else if (cveSortKey === 'published') {
+      // Sort by oldest published date per package; packages without dates always last
+      const oldest = e => e.vulns.reduce((m, v) => {
+        const t = Date.parse(v.published);
+        return Number.isNaN(t) ? m : Math.min(m, t);
+      }, Infinity);
+      av = oldest(a);
+      bv = oldest(b);
+      if (av === bv) return 0;
+      if (av === Infinity) return 1;
+      if (bv === Infinity) return -1;
+      return (av - bv) * cveSortDir;
     } else if (cveSortKey === 'version') {
       av = a.row.version || '';
       bv = b.row.version || '';
@@ -5343,13 +5357,20 @@ function getVisibleCveEntries() {
   return entries;
 }
 
+function formatCvePublished(iso) {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return '—';
+  const days = Math.max(0, Math.floor((Date.now() - t) / 86400000));
+  return `${new Date(t).toISOString().slice(0, 10)} (${formatAge(days)})`;
+}
+
 function renderCveTable() {
   const tbody = document.getElementById('cve-body');
   if (!tbody) return;
 
   const entries = getVisibleCveEntries();
   if (entries.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">◌</div><div class="empty-state-text">No results match the current CVE filter</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">◌</div><div class="empty-state-text">No results match the current CVE filter</div></div></td></tr>`;
     return;
   }
 
@@ -5369,7 +5390,10 @@ function renderCveTable() {
     // Build detail text with NVD links for CVEs with unknown severity
     let detailText = '';
     let summaryText = '';
+    let publishedText = '—';
     if (e.vulns.length) {
+      // One line per listed CVE (same order as Details): date + age
+      publishedText = e.vulns.slice(0, 3).map(v => formatCvePublished(v.published)).join('<br>');
       const vulnLinks = e.vulns.slice(0, 3).map(v => {
         const severity = v.severity || 'Unknown';
         // Add NVD link if severity is unknown (with proper escaping to prevent XSS)
@@ -5397,6 +5421,7 @@ function renderCveTable() {
       <td>${ecoTag}</td>
       <td><span style="font:var(--cds-code-01);color:${getCveSeverityRank(e.maxSeverity) === 4 ? 'var(--cds-support-error)' : getCveSeverityRank(e.maxSeverity) === 3 ? 'var(--cds-support-warning)' : getCveSeverityRank(e.maxSeverity) === 2 ? 'var(--cds-support-caution)' : 'var(--cds-text-secondary)'};">${escHtml(e.maxSeverity || 'Unknown')}</span></td>
       <td><div class="reason-text">${detailText}</div></td>
+      <td><div class="reason-text" style="white-space:nowrap;">${publishedText}</div></td>
       <td><div class="reason-text" style="max-width:400px;">${summaryText}</div></td>
     </tr>`;
   }).join('') + renderLimitNotice(totalEntries, 'CVE results');
@@ -5513,7 +5538,7 @@ async function fetchAllCves() {
 }
 
 function exportCveCSV() {
-  const rows = [['Package', 'Version', 'Ecosystem', 'Status', 'CVE Count', 'Max Severity', 'Preferred ID', 'Aliases', 'Notes']];
+  const rows = [['Package', 'Version', 'Ecosystem', 'Status', 'CVE Count', 'Max Severity', 'Preferred ID', 'Aliases', 'Published', 'Notes']];
   cveEntries.forEach(e => {
     rows.push([
       e.row.name,
@@ -5524,6 +5549,7 @@ function exportCveCSV() {
       e.maxSeverity || '',
       e.vulns.map(v => v.id).join('; '),
       e.vulns.map(v => (v.aliases || []).join('|')).join('; '),
+      e.vulns.map(v => (v.published || '').slice(0, 10)).join('; '),
       e.error || (e.status === 'manual' ? 'Manual review required' : '')
     ]);
   });

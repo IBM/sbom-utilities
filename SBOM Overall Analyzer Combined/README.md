@@ -77,7 +77,10 @@ Note:
   - unknown
   - manual review
 - CVE summary text in the table
-- CSV export
+- CVE publish date and age per vulnerability (taken from the OSV `published` field, no extra API calls)
+  - shown as `YYYY-MM-DD (age)` for each CVE listed in the Details column
+  - sortable by the oldest CVE per package; packages without dates sort last
+- CSV export (includes a `Published` column)
 
 ### Component Age Analysis
 - Registry-based release date lookup
@@ -124,7 +127,7 @@ Note:
 - Internet access for optional registry/API lookups
 
 ### Usage
-1. Open `SBOM Analyser.html` in a browser.
+1. Open `SBOM Overall Analyser.html` in a browser.
 2. Load an SBOM by:
    - choosing a file (.json, .xml, .spdx, .tv, .csv, .txt), or
    - pasting content into the input area.
@@ -233,12 +236,12 @@ Note:
 - Single-file HTML application
 - HTML/CSS/JavaScript
 - IBM Carbon-inspired dark UI
-- DOCX export via docx.js (used for detailed report export)
+- Plain-text (.txt) executive summary report export
 - Native browser APIs for parsing, rendering, and network access
 
 ## Contributing
 
-1. Update `SBOM Analyser.html`
+1. Update `SBOM Overall Analyser.html`
 2. Test with representative CycloneDX and SPDX files
 3. Re-test:
    - summary scoring
@@ -262,5 +265,5 @@ Open an issue or document the problem with:
 
 ---
 
-**Version**: 1.1
-**Last Updated**: 2026-06-30
+**Version**: 1.2
+**Last Updated**: 2026-11-03
