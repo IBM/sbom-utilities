@@ -124,7 +124,7 @@ Note:
 - Internet access for optional registry/API lookups
 
 ### Usage
-1. Open `SBOM Analyser.html` in a browser.
+1. Open `SBOM Overall Analyser.html` in a browser.
 2. Load an SBOM by:
    - choosing a file (.json, .xml, .spdx, .tv, .csv, .txt), or
    - pasting content into the input area.
@@ -233,12 +233,12 @@ Note:
 - Single-file HTML application
 - HTML/CSS/JavaScript
 - IBM Carbon-inspired dark UI
-- DOCX export via docx.js (used for detailed report export)
+- Plain-text (.txt) executive summary report export
 - Native browser APIs for parsing, rendering, and network access
 
 ## Contributing
 
-1. Update `SBOM Analyser.html`
+1. Update `SBOM Overall Analyser.html`
 2. Test with representative CycloneDX and SPDX files
 3. Re-test:
    - summary scoring
@@ -263,4 +263,4 @@ Open an issue or document the problem with:
 ---
 
 **Version**: 1.1
-**Last Updated**: 2026-06-30
+**Last Updated**: 2026-09-10
